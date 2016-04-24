@@ -58,6 +58,7 @@ public class UdgerParser implements Closeable {
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
+                connection = null;
             }
         } catch (SQLException e) {
             throw new IOException(e.getMessage());
@@ -176,6 +177,7 @@ public class UdgerParser implements Closeable {
             ResultSet dataCenterRs = getFirstRow(UdgerSqlQuery.SQL_DATACENTER, ipv4int, ipv4int);
             if (dataCenterRs != null && dataCenterRs.next()) {
                 UdgerDataCenter dc = fetchDataCenter(dataCenterRs);
+                ret.setDataCenter(dc);
             }
         } else {
             udgerIp.setIpVer(6);
@@ -289,7 +291,7 @@ public class UdgerParser implements Closeable {
             }
             userAgent.setUaVersion(version);
             userAgent.setUaVersionMajor(version.split("\\.")[0]);
-            userAgent.setUa(userAgent.getUa() + " " + version);
+            userAgent.setUa((userAgent.getUa() != null ? userAgent.getUa() : "") + " " + version);
         } else {
             userAgent.setUaVersion(null);
             userAgent.setUaVersionMajor(null);

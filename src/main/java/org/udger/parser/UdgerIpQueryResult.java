@@ -15,6 +15,7 @@ public class UdgerIpQueryResult implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private UdgerIp ip;
+    private UdgerDataCenter dataCenter;
 
     public UdgerIp getIp() {
         return ip;
@@ -22,5 +23,13 @@ public class UdgerIpQueryResult implements Serializable {
 
     public void setIp(UdgerIp ip) {
         this.ip = ip;
+    }
+
+    public UdgerDataCenter getDataCenter() {
+        return dataCenter;
+    }
+
+    public void setDataCenter(UdgerDataCenter dataCenter) {
+        this.dataCenter = dataCenter;
     }
 }
