@@ -78,7 +78,7 @@ public class UdgerSqlQuery {
         "LIMIT 1";
 
     private static final String OS_COLUMNS =
-            "family AS family, " +
+            "family AS os_family, " +
             "family_code AS os_family_code, " +
             "name AS os, " +
             "name_code AS os_code, " +

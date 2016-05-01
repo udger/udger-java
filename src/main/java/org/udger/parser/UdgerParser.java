@@ -74,76 +74,64 @@ public class UdgerParser implements Closeable {
         Integer clientId = null;
         Integer classId = null;
 
-        UdgerUa userAgent = null;
         ResultSet userAgentRs = getFirstRow(UdgerSqlQuery.SQL_CRAWLER, uaQuery);
         if (userAgentRs != null && userAgentRs.next()) {
-            userAgent = fetchUserAgent(userAgentRs);
+            ret = new UdgerUaResult();
+            fetchUserAgent(userAgentRs, ret);
             classId = 99;
             clientId = -1;
         } else {
             userAgentRs = getFirstRow(UdgerSqlQuery.SQL_CLIENT, uaQuery);
             if (userAgentRs != null && userAgentRs.next()) {
-                userAgent = fetchUserAgent(userAgentRs);
-                classId = userAgent.getClassId();
-                clientId = userAgent.getClientId();
-                patchVersions(userAgent);
+                ret = new UdgerUaResult();
+                fetchUserAgent(userAgentRs, ret);
+                classId = ret.getClassId();
+                clientId = ret.getClientId();
+                patchVersions(ret);
             }
         }
 
-        if (userAgent != null) {
+        ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_OS, uaQuery);
+        if (opSysRs != null && opSysRs.next()) {
             if (ret == null) {
                 ret = new UdgerUaResult();
             }
-            ret.setUa(userAgent);
-        }
-
-        UdgerOs opSys = null;
-        ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_OS, uaQuery);
-        if (opSysRs != null && opSysRs.next()) {
-            opSys = fetchOperatingSystem(opSysRs);
+            fetchOperatingSystem(opSysRs, ret);
         } else {
             if (clientId != null && clientId != 0) {
                 opSysRs = getFirstRow(UdgerSqlQuery.SQL_CLIENT_OS, clientId.toString());
                 if (opSysRs != null && opSysRs.next()) {
-                    opSys = fetchOperatingSystem(opSysRs);
+                    if (ret == null) {
+                        ret = new UdgerUaResult();
+                    }
+                    fetchOperatingSystem(opSysRs, ret);
                 }
             }
         }
 
-        if (opSys != null) {
+        ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE, uaQuery);
+        if (devRs != null  && devRs.next()) {
             if (ret == null) {
                 ret = new UdgerUaResult();
             }
-            ret.setOs(opSys);
-        }
-
-        UdgerDevice device = null;
-        ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE, uaQuery);
-        if (devRs != null  && devRs.next()) {
-            device = fetchDevice(devRs);
+            fetchDevice(devRs, ret);
         } else {
             if (classId != null && classId != -1) {
                 devRs = getFirstRow(UdgerSqlQuery.SQL_CLIENT_CLASS, classId.toString());
                 if (devRs != null && devRs.next()) {
-                    device = fetchDevice(devRs);
+                    if (ret == null) {
+                        ret = new UdgerUaResult();
+                    }
+                    fetchDevice(devRs, ret);
                 }
             }
-        }
-
-        if (device != null) {
-            if (ret == null) {
-                ret = new UdgerUaResult();
-            }
-            ret.setDevice(device);
         }
 
         return ret;
     }
 
 
-    public UdgerIpQueryResult parseIp(String ipQuery) throws SQLException, UnknownHostException {
-
-        UdgerIpQueryResult ret = null;
+    public UdgerIpResult parseIp(String ipQuery) throws SQLException, UnknownHostException {
 
         InetAddress addr = InetAddress.getByName(ipQuery);
         Integer ipv4int = null;
@@ -156,31 +144,28 @@ public class UdgerParser implements Closeable {
 
         connect();
 
-        UdgerIp udgerIp = new UdgerIp();
-        udgerIp.setIpClassification("Unrecognized");
-        udgerIp.setIpClassificationCode("unrecognized");
-
-        ret = new UdgerIpQueryResult();
-        ret.setIp(udgerIp);
+        UdgerIpResult ret = new UdgerIpResult();
+        ret.setIp(ipQuery);
+        ret.setIpClassification("Unrecognized");
+        ret.setIpClassificationCode("unrecognized");
 
         ResultSet ipRs = getFirstRow(UdgerSqlQuery.SQL_IP, addr.getHostAddress());
 
         if (ipRs != null && ipRs.next()) {
-            loadUdgerIp(ipRs, udgerIp);
-            if (!ID_CRAWLER.equals(udgerIp.getIpClassificationCode())) {
-                udgerIp.setCrawlerFamilyInfoUrl(null);
+            fetchUdgerIp(ipRs, ret);
+            if (!ID_CRAWLER.equals(ret.getIpClassificationCode())) {
+                ret.setCrawlerFamilyInfoUrl(null);
             }
         }
 
         if (ipv4int != null) {
-            udgerIp.setIpVer(4);
+            ret.setIpVer(4);
             ResultSet dataCenterRs = getFirstRow(UdgerSqlQuery.SQL_DATACENTER, ipv4int, ipv4int);
             if (dataCenterRs != null && dataCenterRs.next()) {
-                UdgerDataCenter dc = fetchDataCenter(dataCenterRs);
-                ret.setDataCenter(dc);
+                fetchDataCenter(dataCenterRs, ret);
             }
         } else {
-            udgerIp.setIpVer(6);
+            ret.setIpVer(6);
         }
 
         return ret;
@@ -228,8 +213,7 @@ public class UdgerParser implements Closeable {
     }
 
 
-    private UdgerUa fetchUserAgent(ResultSet rs) throws SQLException {
-        UdgerUa ret = new UdgerUa();
+    private void fetchUserAgent(ResultSet rs, UdgerUaResult ret) throws SQLException {
         ret.setClassId(rs.getInt("class_id"));
         ret.setClientId(rs.getInt("client_id"));
         ret.setCrawlerCategory(rs.getString("crawler_category"));
@@ -252,12 +236,10 @@ public class UdgerParser implements Closeable {
         ret.setUaUptodateCurrentVersion(rs.getString("ua_uptodate_current_version"));
         ret.setUaVersion(rs.getString("ua_version"));
         ret.setUaVersionMajor(rs.getString("ua_version_major"));
-        return ret;
     }
 
-    private UdgerOs fetchOperatingSystem(ResultSet rs) throws SQLException {
-        UdgerOs ret = new UdgerOs();
-        ret.setFamily(rs.getString("family"));
+    private void fetchOperatingSystem(ResultSet rs, UdgerUaResult ret) throws SQLException {
+        ret.setOsFamily(rs.getString("os_family"));
         ret.setOs(rs.getString("os"));
         ret.setOsCode(rs.getString("os_code"));
         ret.setOsFamilyCode(rs.getString("os_family_code"));
@@ -268,20 +250,17 @@ public class UdgerParser implements Closeable {
         ret.setOsIcon(rs.getString("os_icon"));
         ret.setOsIconBig(rs.getString("os_icon_big"));
         ret.setOsInfoUrl(rs.getString("os_info_url"));
-        return ret;
     }
 
-    private UdgerDevice fetchDevice(ResultSet rs) throws SQLException {
-        UdgerDevice ret = new UdgerDevice();
+    private void fetchDevice(ResultSet rs, UdgerUaResult ret) throws SQLException {
         ret.setDeviceClass(rs.getString("device_class"));
         ret.setDeviceClassCode(rs.getString("device_class_code"));
         ret.setDeviceClassIcon(rs.getString("device_class_icon"));
         ret.setDeviceClassIconBig(rs.getString("device_class_icon_big"));
         ret.setDeviceClassInfoUrl(rs.getString("device_class_info_url"));
-        return ret;
     }
 
-    private void patchVersions(UdgerUa userAgent) {
+    private void patchVersions(UdgerUaResult ret) {
         if (lastPatternMatcher != null) {
             String version = "";
             try {
@@ -289,45 +268,43 @@ public class UdgerParser implements Closeable {
             } catch (IndexOutOfBoundsException e) {
                 // swallow
             }
-            userAgent.setUaVersion(version);
-            userAgent.setUaVersionMajor(version.split("\\.")[0]);
-            userAgent.setUa((userAgent.getUa() != null ? userAgent.getUa() : "") + " " + version);
+            ret.setUaVersion(version);
+            ret.setUaVersionMajor(version.split("\\.")[0]);
+            ret.setUa((ret.getUa() != null ? ret.getUa() : "") + " " + version);
         } else {
-            userAgent.setUaVersion(null);
-            userAgent.setUaVersionMajor(null);
+            ret.setUaVersion(null);
+            ret.setUaVersionMajor(null);
         }
     }
 
-    private void loadUdgerIp(ResultSet rs, UdgerIp udgerIp) throws SQLException {
-        udgerIp.setCrawlerCategory(rs.getString("crawler_category"));
-        udgerIp.setCrawlerCategoryCode(rs.getString("crawler_category_code"));
-        udgerIp.setCrawlerFamily(rs.getString("crawler_family"));
-        udgerIp.setCrawlerFamilyCode(rs.getString("crawler_family_code"));
-        udgerIp.setCrawlerFamilyHomepage(rs.getString("crawler_family_homepage"));
-        udgerIp.setCrawlerFamilyIcon(rs.getString("crawler_family_icon"));
-        udgerIp.setCrawlerFamilyInfoUrl(rs.getString("crawler_family_info_url"));
-        udgerIp.setCrawlerFamilyVendor(rs.getString("crawler_family_vendor"));
-        udgerIp.setCrawlerFamilyVendorCode(rs.getString("crawler_family_vendor_code"));
-        udgerIp.setCrawlerFamilyVendorHomepage(rs.getString("crawler_family_vendor_homepage"));
-        udgerIp.setCrawlerLastSeen(rs.getString("crawler_last_seen"));
-        udgerIp.setCrawlerName(rs.getString("crawler_name"));
-        udgerIp.setCrawlerRespectRobotstxt(rs.getString("crawler_respect_robotstxt"));
-        udgerIp.setCrawlerVer(rs.getString("crawler_ver"));
-        udgerIp.setCrawlerVerMajor(rs.getString("crawler_ver_major"));
-        udgerIp.setIpCity(rs.getString("ip_city"));
-        udgerIp.setIpClassification(rs.getString("ip_classification"));
-        udgerIp.setIpClassificationCode(rs.getString("ip_classification_code"));
-        udgerIp.setIpCountry(rs.getString("ip_country"));
-        udgerIp.setIpCountryCode(rs.getString("ip_country_code"));
-        udgerIp.setIpHostname(rs.getString("ip_hostname"));
-        udgerIp.setIpLastSeen(rs.getString("ip_last_seen"));
+    private void fetchUdgerIp(ResultSet rs, UdgerIpResult ret) throws SQLException {
+        ret.setCrawlerCategory(rs.getString("crawler_category"));
+        ret.setCrawlerCategoryCode(rs.getString("crawler_category_code"));
+        ret.setCrawlerFamily(rs.getString("crawler_family"));
+        ret.setCrawlerFamilyCode(rs.getString("crawler_family_code"));
+        ret.setCrawlerFamilyHomepage(rs.getString("crawler_family_homepage"));
+        ret.setCrawlerFamilyIcon(rs.getString("crawler_family_icon"));
+        ret.setCrawlerFamilyInfoUrl(rs.getString("crawler_family_info_url"));
+        ret.setCrawlerFamilyVendor(rs.getString("crawler_family_vendor"));
+        ret.setCrawlerFamilyVendorCode(rs.getString("crawler_family_vendor_code"));
+        ret.setCrawlerFamilyVendorHomepage(rs.getString("crawler_family_vendor_homepage"));
+        ret.setCrawlerLastSeen(rs.getString("crawler_last_seen"));
+        ret.setCrawlerName(rs.getString("crawler_name"));
+        ret.setCrawlerRespectRobotstxt(rs.getString("crawler_respect_robotstxt"));
+        ret.setCrawlerVer(rs.getString("crawler_ver"));
+        ret.setCrawlerVerMajor(rs.getString("crawler_ver_major"));
+        ret.setIpCity(rs.getString("ip_city"));
+        ret.setIpClassification(rs.getString("ip_classification"));
+        ret.setIpClassificationCode(rs.getString("ip_classification_code"));
+        ret.setIpCountry(rs.getString("ip_country"));
+        ret.setIpCountryCode(rs.getString("ip_country_code"));
+        ret.setIpHostname(rs.getString("ip_hostname"));
+        ret.setIpLastSeen(rs.getString("ip_last_seen"));
     }
 
-    private UdgerDataCenter fetchDataCenter(ResultSet rs) throws SQLException {
-        UdgerDataCenter ret = new UdgerDataCenter();
+    private void fetchDataCenter(ResultSet rs, UdgerIpResult ret) throws SQLException {
         ret.setDataCenterHomePage(rs.getString("datacenter_homepage"));
         ret.setDataCenterName(rs.getString("datacenter_name"));
         ret.setDataCenterNameCode(rs.getString("datacenter_name_code"));
-        return ret;
     }
 }

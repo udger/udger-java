@@ -28,16 +28,16 @@ public class UdgerParserTest {
     public void testUaString1() throws SQLException {
         String uaQuery = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/534+ (KHTML, like Gecko) BingPreview/1.0b";
         UdgerUaResult qr = parser.parseUa(uaQuery);
-        assertEquals(qr.getUa().getUa(), "BingPreview/1.0b");
-        assertEquals(qr.getOs().getOs(), "Windows 7");
-        assertEquals(qr.getUa().getUaFamily(), "bingbot");
+        assertEquals(qr.getUa(), "BingPreview/1.0b");
+        assertEquals(qr.getOs(), "Windows 7");
+        assertEquals(qr.getUaFamily(), "bingbot");
     }
 
     @Test
     public void testIp() throws SQLException, UnknownHostException {
         String ipQuery = "108.61.199.93";
-        UdgerIpQueryResult qr = parser.parseIp(ipQuery);
-        assertEquals(qr.getIp().getIpClassificationCode(), "crawler");
+        UdgerIpResult qr = parser.parseIp(ipQuery);
+        assertEquals(qr.getIpClassificationCode(), "crawler");
     }
 
 }

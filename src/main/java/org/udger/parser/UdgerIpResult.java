@@ -10,10 +10,12 @@ package org.udger.parser;
 
 import java.io.Serializable;
 
-public class UdgerIp implements Serializable {
+public class UdgerIpResult implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    // IP
+    private String ip;
     private int ipVer;
     private String ipClassification;
     private String ipClassificationCode;
@@ -38,6 +40,17 @@ public class UdgerIp implements Serializable {
     private String crawlerCategoryCode;
     private String crawlerRespectRobotstxt;
 
+    // DATACENTER
+    private String dataCenterName;
+    private String dataCenterNameCode;
+    private String dataCenterHomePage;
+
+    public String getIp() {
+        return ip;
+    }
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
     public int getIpVer() {
         return ipVer;
     }
@@ -175,6 +188,24 @@ public class UdgerIp implements Serializable {
     }
     public void setCrawlerRespectRobotstxt(String crawlerRespectRobotstxt) {
         this.crawlerRespectRobotstxt = crawlerRespectRobotstxt;
+    }
+    public String getDataCenterName() {
+        return dataCenterName;
+    }
+    public void setDataCenterName(String dataCenterName) {
+        this.dataCenterName = dataCenterName;
+    }
+    public String getDataCenterNameCode() {
+        return dataCenterNameCode;
+    }
+    public void setDataCenterNameCode(String dataCenterNameCode) {
+        this.dataCenterNameCode = dataCenterNameCode;
+    }
+    public String getDataCenterHomePage() {
+        return dataCenterHomePage;
+    }
+    public void setDataCenterHomePage(String dataCenterHomePage) {
+        this.dataCenterHomePage = dataCenterHomePage;
     }
 
 }
