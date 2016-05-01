@@ -65,9 +65,9 @@ public class UdgerParser implements Closeable {
         }
     }
 
-    public UdgerUaQueryResult parseUa(String uaQuery) throws SQLException {
+    public UdgerUaResult parseUa(String uaQuery) throws SQLException {
 
-        UdgerUaQueryResult ret = null;
+        UdgerUaResult ret = null;
 
         connect();
 
@@ -92,9 +92,9 @@ public class UdgerParser implements Closeable {
 
         if (userAgent != null) {
             if (ret == null) {
-                ret = new UdgerUaQueryResult();
+                ret = new UdgerUaResult();
             }
-            ret.setUserAgent(userAgent);
+            ret.setUa(userAgent);
         }
 
         UdgerOs opSys = null;
@@ -112,7 +112,7 @@ public class UdgerParser implements Closeable {
 
         if (opSys != null) {
             if (ret == null) {
-                ret = new UdgerUaQueryResult();
+                ret = new UdgerUaResult();
             }
             ret.setOs(opSys);
         }
@@ -132,7 +132,7 @@ public class UdgerParser implements Closeable {
 
         if (device != null) {
             if (ret == null) {
-                ret = new UdgerUaQueryResult();
+                ret = new UdgerUaResult();
             }
             ret.setDevice(device);
         }

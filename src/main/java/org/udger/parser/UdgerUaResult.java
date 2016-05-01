@@ -10,22 +10,22 @@ package org.udger.parser;
 
 import java.io.Serializable;
 
-public class UdgerUaQueryResult implements Serializable {
+public class UdgerUaResult implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private UdgerUa userAgent;
+    private UdgerUa ua;
 
     private UdgerOs os;
 
     private UdgerDevice device;
 
-    public UdgerUa getUserAgent() {
-        return userAgent;
+    public UdgerUa getUa() {
+        return ua;
     }
 
-    public void setUserAgent(UdgerUa userAgent) {
-        this.userAgent = userAgent;
+    public void setUa(UdgerUa ua) {
+        this.ua = ua;
     }
 
     public UdgerOs getOs() {

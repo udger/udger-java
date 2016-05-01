@@ -19,7 +19,7 @@ public class UdgerDbTest {
             JsonObject jor = jar.getJsonObject("ret");
             String query = jar.getJsonObject("test").getString("teststring");
             try {
-                UdgerUaQueryResult ret = up.parseUa(query);
+                UdgerUaResult ret = up.parseUa(query);
                 if (checkResult(ret, jor)) {
                     System.out.println("Succeeded: " + query);
                 } else {
@@ -32,27 +32,27 @@ public class UdgerDbTest {
         }
     }
 
-    private static boolean checkResult(UdgerUaQueryResult ret, JsonObject jor) {
+    private static boolean checkResult(UdgerUaResult ret, JsonObject jor) {
         boolean result = true;
-        result = testEqual(jor, "ua_engine", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaEngine() : null) && result;
-        result = testEqual(jor, "ua_version", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaVersion() : null) && result;
-        result = testEqual(jor, "ua_family_code", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaFamilyCode() : null) && result;
-        result = testEqual(jor, "ua_family_icon_big", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaFamilyIconBig() : null) && result;
-        result = testEqual(jor, "crawler_category", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getCrawlerCategory() : null) && result;
-        result = testEqual(jor, "ua_family_icon", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaFamilyIcon() : null) && result;
-        result = testEqual(jor, "ua_family_vendor", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaFamilyVendor() : null) && result;
-        result = testEqual(jor, "ua_family_vendor_code", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaFamilyVendorCode() : null) && result;
-        result = testEqual(jor, "ua_uptodate_current_version", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaUptodateCurrentVersion() : null) && result;
-        result = testEqual(jor, "ua_class_code", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaClassCode() : null) && result;
-        result = testEqual(jor, "ua", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUa() : null) && result;
-        result = testEqual(jor, "ua_family", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaFamily() : null) && result;
-        result = testEqual(jor, "ua_family_homepage", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaFamilyHomepage() : null) && result;
-        result = testEqual(jor, "ua_version_major", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaVersionMajor() : null) && result;
-        result = testEqual(jor, "ua_family_info_url", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaFamilyInfoUrl() : null) && result;
-        result = testEqual(jor, "crawler_respect_robotstxt", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getCrawlerRespectRobotstxt() : null) && result;
-        result = testEqual(jor, "ua_class", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaClass() : null) && result;
-        result = testEqual(jor, "ua_family_vendor_homepage", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getUaFamilyVendorHomepage() : null) && result;
-        result = testEqual(jor, "crawler_category_code", ret != null && ret.getUserAgent() != null ? ret.getUserAgent().getCrawlerCategoryCode() : null) && result;
+        result = testEqual(jor, "ua_engine", ret != null && ret.getUa() != null ? ret.getUa().getUaEngine() : null) && result;
+        result = testEqual(jor, "ua_version", ret != null && ret.getUa() != null ? ret.getUa().getUaVersion() : null) && result;
+        result = testEqual(jor, "ua_family_code", ret != null && ret.getUa() != null ? ret.getUa().getUaFamilyCode() : null) && result;
+        result = testEqual(jor, "ua_family_icon_big", ret != null && ret.getUa() != null ? ret.getUa().getUaFamilyIconBig() : null) && result;
+        result = testEqual(jor, "crawler_category", ret != null && ret.getUa() != null ? ret.getUa().getCrawlerCategory() : null) && result;
+        result = testEqual(jor, "ua_family_icon", ret != null && ret.getUa() != null ? ret.getUa().getUaFamilyIcon() : null) && result;
+        result = testEqual(jor, "ua_family_vendor", ret != null && ret.getUa() != null ? ret.getUa().getUaFamilyVendor() : null) && result;
+        result = testEqual(jor, "ua_family_vendor_code", ret != null && ret.getUa() != null ? ret.getUa().getUaFamilyVendorCode() : null) && result;
+        result = testEqual(jor, "ua_uptodate_current_version", ret != null && ret.getUa() != null ? ret.getUa().getUaUptodateCurrentVersion() : null) && result;
+        result = testEqual(jor, "ua_class_code", ret != null && ret.getUa() != null ? ret.getUa().getUaClassCode() : null) && result;
+        result = testEqual(jor, "ua", ret != null && ret.getUa() != null ? ret.getUa().getUa() : null) && result;
+        result = testEqual(jor, "ua_family", ret != null && ret.getUa() != null ? ret.getUa().getUaFamily() : null) && result;
+        result = testEqual(jor, "ua_family_homepage", ret != null && ret.getUa() != null ? ret.getUa().getUaFamilyHomepage() : null) && result;
+        result = testEqual(jor, "ua_version_major", ret != null && ret.getUa() != null ? ret.getUa().getUaVersionMajor() : null) && result;
+        result = testEqual(jor, "ua_family_info_url", ret != null && ret.getUa() != null ? ret.getUa().getUaFamilyInfoUrl() : null) && result;
+        result = testEqual(jor, "crawler_respect_robotstxt", ret != null && ret.getUa() != null ? ret.getUa().getCrawlerRespectRobotstxt() : null) && result;
+        result = testEqual(jor, "ua_class", ret != null && ret.getUa() != null ? ret.getUa().getUaClass() : null) && result;
+        result = testEqual(jor, "ua_family_vendor_homepage", ret != null && ret.getUa() != null ? ret.getUa().getUaFamilyVendorHomepage() : null) && result;
+        result = testEqual(jor, "crawler_category_code", ret != null && ret.getUa() != null ? ret.getUa().getCrawlerCategoryCode() : null) && result;
 //        result = testEqual(jor, "ua_string", ret.getUserAgent() != null ? ret.getUserAgent().get : null) && result;
 
         result = testEqual(jor, "os_family_vendor_homepage", ret != null && ret.getOs() != null ? ret.getOs().getOsFamilyVedorHomepage() : null) && result;
@@ -85,7 +85,7 @@ public class UdgerDbTest {
             expected = expected.replaceAll(" ", "%20");
         }
         if (!expected.equals(ret)) {
-            System.out.println("Fails: value=" + ret + "  expected:" + expected);
+            System.out.println("Failed \"" + test + "\" : value=" + ret + "  expected:" + expected);
             return false;
         }
         return true;
