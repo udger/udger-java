@@ -65,63 +65,52 @@ public class UdgerParser implements Closeable {
         }
     }
 
-    public UdgerUaResult parseUa(String uaQuery) throws SQLException {
+    public UdgerUaResult parseUa(String uaString) throws SQLException {
 
-        UdgerUaResult ret = null;
+        UdgerUaResult ret = new UdgerUaResult(uaString);
 
         connect();
 
         Integer clientId = null;
         Integer classId = null;
 
-        ResultSet userAgentRs = getFirstRow(UdgerSqlQuery.SQL_CRAWLER, uaQuery);
+        ResultSet userAgentRs = getFirstRow(UdgerSqlQuery.SQL_CRAWLER, uaString);
         if (userAgentRs != null && userAgentRs.next()) {
-            ret = new UdgerUaResult();
             fetchUserAgent(userAgentRs, ret);
             classId = 99;
             clientId = -1;
         } else {
-            userAgentRs = getFirstRow(UdgerSqlQuery.SQL_CLIENT, uaQuery);
+            userAgentRs = getFirstRow(UdgerSqlQuery.SQL_CLIENT, uaString);
             if (userAgentRs != null && userAgentRs.next()) {
-                ret = new UdgerUaResult();
                 fetchUserAgent(userAgentRs, ret);
                 classId = ret.getClassId();
                 clientId = ret.getClientId();
                 patchVersions(ret);
+            } else {
+                ret.setUaClass("Unrecognized");
+                ret.setUaClassCode("unrecognized");
             }
         }
 
-        ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_OS, uaQuery);
+        ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_OS, uaString);
         if (opSysRs != null && opSysRs.next()) {
-            if (ret == null) {
-                ret = new UdgerUaResult();
-            }
             fetchOperatingSystem(opSysRs, ret);
         } else {
             if (clientId != null && clientId != 0) {
                 opSysRs = getFirstRow(UdgerSqlQuery.SQL_CLIENT_OS, clientId.toString());
                 if (opSysRs != null && opSysRs.next()) {
-                    if (ret == null) {
-                        ret = new UdgerUaResult();
-                    }
                     fetchOperatingSystem(opSysRs, ret);
                 }
             }
         }
 
-        ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE, uaQuery);
+        ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE, uaString);
         if (devRs != null  && devRs.next()) {
-            if (ret == null) {
-                ret = new UdgerUaResult();
-            }
             fetchDevice(devRs, ret);
         } else {
             if (classId != null && classId != -1) {
                 devRs = getFirstRow(UdgerSqlQuery.SQL_CLIENT_CLASS, classId.toString());
                 if (devRs != null && devRs.next()) {
-                    if (ret == null) {
-                        ret = new UdgerUaResult();
-                    }
                     fetchDevice(devRs, ret);
                 }
             }
@@ -131,25 +120,30 @@ public class UdgerParser implements Closeable {
     }
 
 
-    public UdgerIpResult parseIp(String ipQuery) throws SQLException, UnknownHostException {
+    public UdgerIpResult parseIp(String ipString) throws SQLException, UnknownHostException {
 
-        InetAddress addr = InetAddress.getByName(ipQuery);
+        UdgerIpResult ret = new UdgerIpResult(ipString);
+
+        InetAddress addr = InetAddress.getByName(ipString);
         Integer ipv4int = null;
+        String normalizedIp;
+
         if (addr instanceof Inet4Address) {
             ipv4int = 0;
             for (byte b: addr.getAddress()) {
                 ipv4int = ipv4int << 8 | (b & 0xFF);
             }
+            normalizedIp = addr.getHostAddress();
+        } else {
+            normalizedIp = addr.getHostAddress().replaceAll("((?:(?:^|:)0+\\b){2,}):?(?!\\S*\\b\\1:0+\\b)(\\S*)", "::$2");
         }
 
         connect();
 
-        UdgerIpResult ret = new UdgerIpResult();
-        ret.setIp(ipQuery);
         ret.setIpClassification("Unrecognized");
         ret.setIpClassificationCode("unrecognized");
 
-        ResultSet ipRs = getFirstRow(UdgerSqlQuery.SQL_IP, addr.getHostAddress());
+        ResultSet ipRs = getFirstRow(UdgerSqlQuery.SQL_IP, normalizedIp);
 
         if (ipRs != null && ipRs.next()) {
             fetchUdgerIp(ipRs, ret);

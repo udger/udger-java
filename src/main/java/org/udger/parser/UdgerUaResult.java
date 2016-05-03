@@ -15,48 +15,57 @@ public class UdgerUaResult implements Serializable {
     private static final long serialVersionUID = 1L;
 
     // UA
+    private final String uaString;
     private Integer clientId;
     private Integer classId;
-    private String uaClass;
-    private String uaClassCode;
-    private String ua;
-    private String uaEngine;
-    private String uaVersion;
-    private String uaVersionMajor;
-    private String crawlerLastSeen;
-    private String crawlerRespectRobotstxt;
-    private String crawlerCategory;
-    private String crawlerCategoryCode;
-    private String uaUptodateCurrentVersion;
-    private String uaFamily;
-    private String uaFamilyCode;
-    private String uaFamilyHomepage;
-    private String uaFamilyIcon;
-    private String uaFamilyIconBig;
-    private String uaFamilyVendor;
-    private String uaFamilyVendorCode;
-    private String uaFamilyVendorHomepage;
-    private String uaFamilyInfoUrl;
+    private String uaClass = "";
+    private String uaClassCode = "";
+    private String ua = "";
+    private String uaEngine = "";
+    private String uaVersion = "";
+    private String uaVersionMajor = "";
+    private String crawlerLastSeen = "";
+    private String crawlerRespectRobotstxt = "";
+    private String crawlerCategory = "";
+    private String crawlerCategoryCode = "";
+    private String uaUptodateCurrentVersion = "";
+    private String uaFamily = "";
+    private String uaFamilyCode = "";
+    private String uaFamilyHomepage = "";
+    private String uaFamilyIcon = "";
+    private String uaFamilyIconBig = "";
+    private String uaFamilyVendor = "";
+    private String uaFamilyVendorCode = "";
+    private String uaFamilyVendorHomepage = "";
+    private String uaFamilyInfoUrl = "";
 
     // OS
-    private String osFamily;
-    private String osFamilyCode;
-    private String os;
-    private String osCode;
-    private String osHomePage;
-    private String osIcon;
-    private String osIconBig;
-    private String osFamilyVendor;
-    private String osFamilyVendorCode;
-    private String osFamilyVedorHomepage;
-    private String osInfoUrl;
+    private String osFamily = "";
+    private String osFamilyCode = "";
+    private String os = "";
+    private String osCode = "";
+    private String osHomePage = "";
+    private String osIcon = "";
+    private String osIconBig = "";
+    private String osFamilyVendor = "";
+    private String osFamilyVendorCode = "";
+    private String osFamilyVedorHomepage = "";
+    private String osInfoUrl = "";
 
     // DEVICE
-    private String deviceClass;
-    private String deviceClassCode;
-    private String deviceClassIcon;
-    private String deviceClassIconBig;
-    private String deviceClassInfoUrl;
+    private String deviceClass = "";
+    private String deviceClassCode = "";
+    private String deviceClassIcon = "";
+    private String deviceClassIconBig = "";
+    private String deviceClassInfoUrl = "";
+
+    public UdgerUaResult(String uaString) {
+        this.uaString = uaString;
+    }
+
+    public String getUaString() {
+        return uaString;
+    }
 
     public Integer getClientId() {
         return clientId;
