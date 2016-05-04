@@ -10,9 +10,9 @@ It also provides information about IP addresses (Public proxies, VPN services, T
 
 ### Compile from git repo
 
-  $ git clone https://github.com/udger/udger-java
-  $ cd udger-java/
-  # maven package
+    $ git clone https://github.com/udger/udger-java
+    $ cd udger-java/
+    $ maven package
 
 ### Requirements
 Udger data is stored in SQLite database file. Udger-java connects to SqLite using JDBC driver. SQLiteJDBC jdbc driver is recommended. If you are using Maven2, add the following XML fragments into your pom.xml file:
