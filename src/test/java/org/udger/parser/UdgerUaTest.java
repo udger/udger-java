@@ -1,5 +1,6 @@
 package org.udger.parser;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 
@@ -13,21 +14,34 @@ public class UdgerUaTest {
         InputStream is = UdgerUaTest.class.getResourceAsStream("test_ua.json");
         JsonReader jr = javax.json.Json.createReader(is);
         JsonArray ja = jr.readArray();
-        UdgerParser up = new UdgerParser("udgerdb_v3.dat");
-        for (int i=0; i < ja.size(); i++) {
-            JsonObject jar = ja.getJsonObject(i);
-            JsonObject jor = jar.getJsonObject("ret");
-            String query = jar.getJsonObject("test").getString("teststring");
-            try {
-                UdgerUaResult ret = up.parseUa(query);
-                if (checkResult(ret, jor)) {
-                    System.out.println((i+1) + " : succeeded: " + query);
-                } else {
-                    System.out.println((i+1) + " : failed: " + query);
-                }
+        UdgerParser up = null;
+        try {
+            up = new UdgerParser("udgerdb_v3.dat");
+            for (int i=0; i < ja.size(); i++) {
+                JsonObject jar = ja.getJsonObject(i);
+                JsonObject jor = jar.getJsonObject("ret");
+                String query = jar.getJsonObject("test").getString("teststring");
+                try {
+                    UdgerUaResult ret = up.parseUa(query);
+                    System.out.print("### Test : " + (i+1) + " - ");
+                    if (checkResult(ret, jor)) {
+                        System.out.println("SUCCEEDED");
+                    } else {
+                        System.out.println("FAILED!");
+                    }
+                    System.out.println("Query: " + query);
+//                    System.out.println("Result: " + ReflectionToStringBuilder.toString(ret, ToStringStyle.MULTI_LINE_STYLE));
 
-            } catch (SQLException e) {
-                e.printStackTrace();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        } finally {
+            if (up != null) {
+                try {
+                    up.close();
+                } catch (IOException e) {
+                }
             }
         }
     }
