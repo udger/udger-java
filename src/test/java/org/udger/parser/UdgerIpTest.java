@@ -68,9 +68,6 @@ public class UdgerIpTest {
 
     private static boolean testEqual(JsonObject jor, String test, String ret) {
         String expected = jor.getString(test);
-        if (ret == null) {
-            ret = "";
-        }
         if (!expected.equals(ret)) {
             System.out.println("Failed \"" + test + "\" : value=" + ret + "  expected:" + expected);
             return false;

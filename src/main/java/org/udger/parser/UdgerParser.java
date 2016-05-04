@@ -148,7 +148,7 @@ public class UdgerParser implements Closeable {
         if (ipRs != null && ipRs.next()) {
             fetchUdgerIp(ipRs, ret);
             if (!ID_CRAWLER.equals(ret.getIpClassificationCode())) {
-                ret.setCrawlerFamilyInfoUrl(null);
+                ret.setCrawlerFamilyInfoUrl("");
             }
         }
 
@@ -210,48 +210,48 @@ public class UdgerParser implements Closeable {
     private void fetchUserAgent(ResultSet rs, UdgerUaResult ret) throws SQLException {
         ret.setClassId(rs.getInt("class_id"));
         ret.setClientId(rs.getInt("client_id"));
-        ret.setCrawlerCategory(rs.getString("crawler_category"));
-        ret.setCrawlerCategoryCode(rs.getString("crawler_category_code"));
-        ret.setCrawlerLastSeen(rs.getString("crawler_last_seen"));
-        ret.setCrawlerRespectRobotstxt(rs.getString("crawler_respect_robotstxt"));
-        ret.setUa(rs.getString("ua"));
-        ret.setUaClass(rs.getString("ua_class"));
-        ret.setUaClassCode(rs.getString("ua_class_code"));
-        ret.setUaEngine(rs.getString("ua_engine"));
-        ret.setUaFamily(rs.getString("ua_family"));
-        ret.setUaFamilyCode(rs.getString("ua_family_code"));
-        ret.setUaFamilyHomepage(rs.getString("ua_family_homepage"));
-        ret.setUaFamilyIcon(rs.getString("ua_family_icon"));
-        ret.setUaFamilyIconBig(rs.getString("ua_family_icon_big"));
-        ret.setUaFamilyInfoUrl(rs.getString("ua_family_info_url"));
-        ret.setUaFamilyVendor(rs.getString("ua_family_vendor"));
-        ret.setUaFamilyVendorCode(rs.getString("ua_family_vendor_code"));
-        ret.setUaFamilyVendorHomepage(rs.getString("ua_family_vendor_homepage"));
-        ret.setUaUptodateCurrentVersion(rs.getString("ua_uptodate_current_version"));
-        ret.setUaVersion(rs.getString("ua_version"));
-        ret.setUaVersionMajor(rs.getString("ua_version_major"));
+        ret.setCrawlerCategory(nvl(rs.getString("crawler_category")));
+        ret.setCrawlerCategoryCode(nvl(rs.getString("crawler_category_code")));
+        ret.setCrawlerLastSeen(nvl(rs.getString("crawler_last_seen")));
+        ret.setCrawlerRespectRobotstxt(nvl(rs.getString("crawler_respect_robotstxt")));
+        ret.setUa(nvl(rs.getString("ua")));
+        ret.setUaClass(nvl(rs.getString("ua_class")));
+        ret.setUaClassCode(nvl(rs.getString("ua_class_code")));
+        ret.setUaEngine(nvl(rs.getString("ua_engine")));
+        ret.setUaFamily(nvl(rs.getString("ua_family")));
+        ret.setUaFamilyCode(nvl(rs.getString("ua_family_code")));
+        ret.setUaFamilyHomepage(nvl(rs.getString("ua_family_homepage")));
+        ret.setUaFamilyIcon(nvl(rs.getString("ua_family_icon")));
+        ret.setUaFamilyIconBig(nvl(rs.getString("ua_family_icon_big")));
+        ret.setUaFamilyInfoUrl(nvl(rs.getString("ua_family_info_url")));
+        ret.setUaFamilyVendor(nvl(rs.getString("ua_family_vendor")));
+        ret.setUaFamilyVendorCode(nvl(rs.getString("ua_family_vendor_code")));
+        ret.setUaFamilyVendorHomepage(nvl(rs.getString("ua_family_vendor_homepage")));
+        ret.setUaUptodateCurrentVersion(nvl(rs.getString("ua_uptodate_current_version")));
+        ret.setUaVersion(nvl(rs.getString("ua_version")));
+        ret.setUaVersionMajor(nvl(rs.getString("ua_version_major")));
     }
 
     private void fetchOperatingSystem(ResultSet rs, UdgerUaResult ret) throws SQLException {
-        ret.setOsFamily(rs.getString("os_family"));
-        ret.setOs(rs.getString("os"));
-        ret.setOsCode(rs.getString("os_code"));
-        ret.setOsFamilyCode(rs.getString("os_family_code"));
-        ret.setOsFamilyVedorHomepage(rs.getString("os_family_vedor_homepage"));
-        ret.setOsFamilyVendor(rs.getString("os_family_vendor"));
-        ret.setOsFamilyVendorCode(rs.getString("os_family_vendor_code"));
-        ret.setOsHomePage(rs.getString("os_home_page"));
-        ret.setOsIcon(rs.getString("os_icon"));
-        ret.setOsIconBig(rs.getString("os_icon_big"));
-        ret.setOsInfoUrl(rs.getString("os_info_url"));
+        ret.setOsFamily(nvl(rs.getString("os_family")));
+        ret.setOs(nvl(rs.getString("os")));
+        ret.setOsCode(nvl(rs.getString("os_code")));
+        ret.setOsFamilyCode(nvl(rs.getString("os_family_code")));
+        ret.setOsFamilyVedorHomepage(nvl(rs.getString("os_family_vedor_homepage")));
+        ret.setOsFamilyVendor(nvl(rs.getString("os_family_vendor")));
+        ret.setOsFamilyVendorCode(nvl(rs.getString("os_family_vendor_code")));
+        ret.setOsHomePage(nvl(rs.getString("os_home_page")));
+        ret.setOsIcon(nvl(rs.getString("os_icon")));
+        ret.setOsIconBig(nvl(rs.getString("os_icon_big")));
+        ret.setOsInfoUrl(nvl(rs.getString("os_info_url")));
     }
 
     private void fetchDevice(ResultSet rs, UdgerUaResult ret) throws SQLException {
-        ret.setDeviceClass(rs.getString("device_class"));
-        ret.setDeviceClassCode(rs.getString("device_class_code"));
-        ret.setDeviceClassIcon(rs.getString("device_class_icon"));
-        ret.setDeviceClassIconBig(rs.getString("device_class_icon_big"));
-        ret.setDeviceClassInfoUrl(rs.getString("device_class_info_url"));
+        ret.setDeviceClass(nvl(rs.getString("device_class")));
+        ret.setDeviceClassCode(nvl(rs.getString("device_class_code")));
+        ret.setDeviceClassIcon(nvl(rs.getString("device_class_icon")));
+        ret.setDeviceClassIconBig(nvl(rs.getString("device_class_icon_big")));
+        ret.setDeviceClassInfoUrl(nvl(rs.getString("device_class_info_url")));
     }
 
     private void patchVersions(UdgerUaResult ret) {
@@ -266,39 +266,43 @@ public class UdgerParser implements Closeable {
             ret.setUaVersionMajor(version.split("\\.")[0]);
             ret.setUa((ret.getUa() != null ? ret.getUa() : "") + " " + version);
         } else {
-            ret.setUaVersion(null);
-            ret.setUaVersionMajor(null);
+            ret.setUaVersion("");
+            ret.setUaVersionMajor("");
         }
     }
 
     private void fetchUdgerIp(ResultSet rs, UdgerIpResult ret) throws SQLException {
-        ret.setCrawlerCategory(rs.getString("crawler_category"));
-        ret.setCrawlerCategoryCode(rs.getString("crawler_category_code"));
-        ret.setCrawlerFamily(rs.getString("crawler_family"));
-        ret.setCrawlerFamilyCode(rs.getString("crawler_family_code"));
-        ret.setCrawlerFamilyHomepage(rs.getString("crawler_family_homepage"));
-        ret.setCrawlerFamilyIcon(rs.getString("crawler_family_icon"));
-        ret.setCrawlerFamilyInfoUrl(rs.getString("crawler_family_info_url"));
-        ret.setCrawlerFamilyVendor(rs.getString("crawler_family_vendor"));
-        ret.setCrawlerFamilyVendorCode(rs.getString("crawler_family_vendor_code"));
-        ret.setCrawlerFamilyVendorHomepage(rs.getString("crawler_family_vendor_homepage"));
-        ret.setCrawlerLastSeen(rs.getString("crawler_last_seen"));
-        ret.setCrawlerName(rs.getString("crawler_name"));
-        ret.setCrawlerRespectRobotstxt(rs.getString("crawler_respect_robotstxt"));
-        ret.setCrawlerVer(rs.getString("crawler_ver"));
-        ret.setCrawlerVerMajor(rs.getString("crawler_ver_major"));
-        ret.setIpCity(rs.getString("ip_city"));
-        ret.setIpClassification(rs.getString("ip_classification"));
-        ret.setIpClassificationCode(rs.getString("ip_classification_code"));
-        ret.setIpCountry(rs.getString("ip_country"));
-        ret.setIpCountryCode(rs.getString("ip_country_code"));
-        ret.setIpHostname(rs.getString("ip_hostname"));
-        ret.setIpLastSeen(rs.getString("ip_last_seen"));
+        ret.setCrawlerCategory(nvl(rs.getString("crawler_category")));
+        ret.setCrawlerCategoryCode(nvl(rs.getString("crawler_category_code")));
+        ret.setCrawlerFamily(nvl(rs.getString("crawler_family")));
+        ret.setCrawlerFamilyCode(nvl(rs.getString("crawler_family_code")));
+        ret.setCrawlerFamilyHomepage(nvl(rs.getString("crawler_family_homepage")));
+        ret.setCrawlerFamilyIcon(nvl(rs.getString("crawler_family_icon")));
+        ret.setCrawlerFamilyInfoUrl(nvl(rs.getString("crawler_family_info_url")));
+        ret.setCrawlerFamilyVendor(nvl(rs.getString("crawler_family_vendor")));
+        ret.setCrawlerFamilyVendorCode(nvl(rs.getString("crawler_family_vendor_code")));
+        ret.setCrawlerFamilyVendorHomepage(nvl(rs.getString("crawler_family_vendor_homepage")));
+        ret.setCrawlerLastSeen(nvl(rs.getString("crawler_last_seen")));
+        ret.setCrawlerName(nvl(rs.getString("crawler_name")));
+        ret.setCrawlerRespectRobotstxt(nvl(rs.getString("crawler_respect_robotstxt")));
+        ret.setCrawlerVer(nvl(rs.getString("crawler_ver")));
+        ret.setCrawlerVerMajor(nvl(rs.getString("crawler_ver_major")));
+        ret.setIpCity(nvl(rs.getString("ip_city")));
+        ret.setIpClassification(nvl(rs.getString("ip_classification")));
+        ret.setIpClassificationCode(nvl(rs.getString("ip_classification_code")));
+        ret.setIpCountry(nvl(rs.getString("ip_country")));
+        ret.setIpCountryCode(nvl(rs.getString("ip_country_code")));
+        ret.setIpHostname(nvl(rs.getString("ip_hostname")));
+        ret.setIpLastSeen(nvl(rs.getString("ip_last_seen")));
+    }
+
+    private String nvl(String v) {
+        return v != null ? v : "";
     }
 
     private void fetchDataCenter(ResultSet rs, UdgerIpResult ret) throws SQLException {
-        ret.setDataCenterHomePage(rs.getString("datacenter_homepage"));
-        ret.setDataCenterName(rs.getString("datacenter_name"));
-        ret.setDataCenterNameCode(rs.getString("datacenter_name_code"));
+        ret.setDataCenterHomePage(nvl(rs.getString("datacenter_homepage")));
+        ret.setDataCenterName(nvl(rs.getString("datacenter_name")));
+        ret.setDataCenterNameCode(nvl(rs.getString("datacenter_name_code")));
     }
 }

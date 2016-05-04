@@ -78,9 +78,6 @@ public class UdgerUaTest {
 
     private static boolean testEqual(JsonObject jor, String test, String ret) {
         String expected = jor.getString(test);
-        if (ret == null) {
-            ret = "";
-        }
         if (!expected.equals(ret) && expected.startsWith("https://")) {
             expected = expected.replaceAll(" ", "%20");
         }
