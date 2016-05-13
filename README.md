@@ -34,7 +34,8 @@ Example how to create UdgerParser from udger db file `C:\work\udgerdb_v3.dat` (i
 
 and from a UNIX (Linux, Mac OS X, etc) udger db file `/home/john/work/udgerdb_v3.dat`
 
-    UdgerParser up = = new UdgerParser("/home/john/work/udgerdb_v3.dat");
+    UdgerParser up = = new UdgerParser("/home/john/work/udgerdb_v3.dat");       
+   
 
 #### Sample.java
 
@@ -63,11 +64,11 @@ and from a UNIX (Linux, Mac OS X, etc) udger db file `/home/john/work/udgerdb_v3
     }
 ```
 
-
+### Automatic updates download
+- for autoupdate data use Udger data updater (https://udger.com/support/documentation/?doc=62)
 
 
 ### Author
 The Udger.com Team (info@udger.com)
 
-### old v1 format
-If you still use the previous format of the db (v1), please see the branch old_format_v1
+
