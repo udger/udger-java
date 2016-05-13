@@ -71,4 +71,5 @@ and from a UNIX (Linux, Mac OS X, etc) udger db file `/home/john/work/udgerdb_v3
 ### Author
 The Udger.com Team (info@udger.com)
 
-
+### old v1 format
+If you still use the previous format of the db (v1), you can use https://github.com/adhar1985/DIUASparser   
