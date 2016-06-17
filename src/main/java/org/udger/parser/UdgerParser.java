@@ -38,6 +38,15 @@ public class UdgerParser implements Closeable {
     private final Map<String, Pattern> regexCache = new HashMap<>();
     private Matcher lastPatternMatcher;
 
+    private PreparedStatement sqlCrawlerPreparedStatement;
+    private PreparedStatement sqlClientPreparedStatement;
+    private PreparedStatement sqlOsPreparedStatement;
+    private PreparedStatement sqlClientOsPreparedStatement;
+    private PreparedStatement sqlDevicePreparedStatement;
+    private PreparedStatement sqlClientClassPreparedStatement;
+    private PreparedStatement sqlIpPreparedStatement;
+    private PreparedStatement sqlDataCenterPreparedStatement;
+
     public UdgerParser() {
     }
 
@@ -74,13 +83,20 @@ public class UdgerParser implements Closeable {
         Integer clientId = null;
         Integer classId = null;
 
-        ResultSet userAgentRs = getFirstRow(UdgerSqlQuery.SQL_CRAWLER, uaString);
+        if (sqlCrawlerPreparedStatement == null) {
+            sqlCrawlerPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_CRAWLER);
+        }
+
+        ResultSet userAgentRs = getFirstRow(sqlCrawlerPreparedStatement, uaString);
         if (userAgentRs != null && userAgentRs.next()) {
             fetchUserAgent(userAgentRs, ret);
             classId = 99;
             clientId = -1;
         } else {
-            userAgentRs = getFirstRow(UdgerSqlQuery.SQL_CLIENT, uaString);
+            if (sqlClientPreparedStatement == null) {
+                sqlClientPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_CLIENT);
+            }
+            userAgentRs = getFirstRow(sqlClientPreparedStatement, uaString);
             if (userAgentRs != null && userAgentRs.next()) {
                 fetchUserAgent(userAgentRs, ret);
                 classId = ret.getClassId();
@@ -92,24 +108,36 @@ public class UdgerParser implements Closeable {
             }
         }
 
-        ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_OS, uaString);
+        if (sqlOsPreparedStatement == null) {
+            sqlOsPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_OS);
+        }
+        ResultSet opSysRs = getFirstRow(sqlOsPreparedStatement, uaString);
         if (opSysRs != null && opSysRs.next()) {
             fetchOperatingSystem(opSysRs, ret);
         } else {
             if (clientId != null && clientId != 0) {
-                opSysRs = getFirstRow(UdgerSqlQuery.SQL_CLIENT_OS, clientId.toString());
+                if (sqlClientOsPreparedStatement == null) {
+                    sqlClientOsPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_CLIENT_OS);
+                }
+                opSysRs = getFirstRow(sqlClientOsPreparedStatement, clientId.toString());
                 if (opSysRs != null && opSysRs.next()) {
                     fetchOperatingSystem(opSysRs, ret);
                 }
             }
         }
 
-        ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE, uaString);
+        if (sqlDevicePreparedStatement == null) {
+            sqlDevicePreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_DEVICE);
+        }
+        ResultSet devRs = getFirstRow(sqlDevicePreparedStatement, uaString);
         if (devRs != null  && devRs.next()) {
             fetchDevice(devRs, ret);
         } else {
             if (classId != null && classId != -1) {
-                devRs = getFirstRow(UdgerSqlQuery.SQL_CLIENT_CLASS, classId.toString());
+                if (sqlClientClassPreparedStatement == null) {
+                    sqlClientClassPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_CLIENT_CLASS);
+                }
+                devRs = getFirstRow(sqlClientClassPreparedStatement, classId.toString());
                 if (devRs != null && devRs.next()) {
                     fetchDevice(devRs, ret);
                 }
@@ -143,7 +171,10 @@ public class UdgerParser implements Closeable {
         ret.setIpClassification("Unrecognized");
         ret.setIpClassificationCode("unrecognized");
 
-        ResultSet ipRs = getFirstRow(UdgerSqlQuery.SQL_IP, normalizedIp);
+        if (sqlIpPreparedStatement == null) {
+            sqlIpPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_IP);
+        }
+        ResultSet ipRs = getFirstRow(sqlIpPreparedStatement, normalizedIp);
 
         if (ipRs != null && ipRs.next()) {
             fetchUdgerIp(ipRs, ret);
@@ -154,7 +185,10 @@ public class UdgerParser implements Closeable {
 
         if (ipv4int != null) {
             ret.setIpVer(4);
-            ResultSet dataCenterRs = getFirstRow(UdgerSqlQuery.SQL_DATACENTER, ipv4int, ipv4int);
+            if (sqlDataCenterPreparedStatement == null) {
+                sqlDataCenterPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_DATACENTER);
+            }
+            ResultSet dataCenterRs = getFirstRow(sqlDataCenterPreparedStatement, ipv4int, ipv4int);
             if (dataCenterRs != null && dataCenterRs.next()) {
                 fetchDataCenter(dataCenterRs, ret);
             }
@@ -196,9 +230,7 @@ public class UdgerParser implements Closeable {
         }
     }
 
-    private ResultSet getFirstRow(String query, Object ... params) throws SQLException {
-        lastPatternMatcher = null;
-        PreparedStatement preparedStatement = connection.prepareStatement(query);
+    private ResultSet getFirstRow(PreparedStatement preparedStatement, Object ... params) throws SQLException {
         for (int i=0; i < params.length; i++) {
             preparedStatement.setObject(i + 1, params[i]);
         }
