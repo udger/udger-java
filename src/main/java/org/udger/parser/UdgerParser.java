@@ -212,12 +212,13 @@ public class UdgerParser implements Closeable {
                     String param = value_text(1);
                     Pattern patRegex = regexCache.get(regex);
                     if (patRegex == null) {
+                        String oldRegex = regex;
                         Matcher m = PAT_UNPERLIZE.matcher(regex);
                         if (m.matches()) {
                             regex = m.group(1);
                         }
                         patRegex = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-                        regexCache.put(regex, patRegex);
+                        regexCache.put(oldRegex, patRegex);
                     }
                     Matcher matcher = patRegex.matcher(param);
                     boolean found = matcher.find();
