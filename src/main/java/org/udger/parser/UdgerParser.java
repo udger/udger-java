@@ -66,6 +66,38 @@ public class UdgerParser implements Closeable {
     public void close() throws IOException {
         try {
             if (connection != null && !connection.isClosed()) {
+                if (sqlCrawlerPreparedStatement != null) {
+                    sqlCrawlerPreparedStatement.close();
+                    sqlCrawlerPreparedStatement = null;
+                }
+                if (sqlClientPreparedStatement != null) {
+                    sqlClientPreparedStatement.close();
+                    sqlClientPreparedStatement = null;
+                }
+                if (sqlOsPreparedStatement != null) {
+                    sqlOsPreparedStatement.close();
+                    sqlOsPreparedStatement = null;
+                }
+                if (sqlClientOsPreparedStatement != null) {
+                    sqlClientOsPreparedStatement.close();
+                    sqlClientOsPreparedStatement = null;
+                }
+                if (sqlDevicePreparedStatement != null) {
+                    sqlDevicePreparedStatement.close();
+                    sqlDevicePreparedStatement = null;
+                }
+                if (sqlClientClassPreparedStatement != null) {
+                    sqlClientClassPreparedStatement.close();
+                    sqlClientClassPreparedStatement = null;
+                }
+                if (sqlIpPreparedStatement != null) {
+                    sqlIpPreparedStatement.close();
+                    sqlIpPreparedStatement = null;
+                }
+                if (sqlDataCenterPreparedStatement != null) {
+                    sqlDataCenterPreparedStatement.close();
+                    sqlDataCenterPreparedStatement = null;
+                }
                 connection.close();
                 connection = null;
             }
