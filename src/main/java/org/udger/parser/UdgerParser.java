@@ -18,8 +18,12 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,22 +36,118 @@ public class UdgerParser implements Closeable {
     private static final Pattern PAT_UNPERLIZE = Pattern.compile("^/?(.*?)/si$");
     private static final String ID_CRAWLER = "crawler";
 
+    private static List<WordInfo> clientWordArray[];
+    private static List<WordInfo> deviceWordArray[];
+    private static List<WordInfo> osWordArray[];
+
+    private static class WordInfo {
+        int id;
+        String word;
+
+        public WordInfo(int id, String word) {
+            this.id = id;
+            this.word = word;
+        }
+    }
+
+    public PerformanceData perfData = new PerformanceData();
+
     private Connection connection;
 
     private String dbFileName = DB_FILENAME;
     private final Map<String, Pattern> regexCache = new HashMap<>();
     private Matcher lastPatternMatcher;
+    private int regexCount = 0;
 
     private PreparedStatement sqlCrawlerPreparedStatement;
-    private PreparedStatement sqlClientPreparedStatement;
-    private PreparedStatement sqlOsPreparedStatement;
+
+    private final ArrayList<PreparedStatement> sqlClientPrepStmtList = new ArrayList<>();
+    private final ArrayList<PreparedStatement> sqlDevicePrepStmtList = new ArrayList<>();
+    private final ArrayList<PreparedStatement> sqlOsPrepStmtList = new ArrayList<>();
+
     private PreparedStatement sqlClientOsPreparedStatement;
-    private PreparedStatement sqlDevicePreparedStatement;
     private PreparedStatement sqlClientClassPreparedStatement;
     private PreparedStatement sqlIpPreparedStatement;
     private PreparedStatement sqlDataCenterPreparedStatement;
 
     public UdgerParser() {
+    }
+
+
+    public void prepareParser() throws SQLException {
+        connect();
+        clientWordArray = prepareWordArray("udger_client_regex", "udger_client_regex_words");
+        deviceWordArray = prepareWordArray("udger_deviceclass_regex", "udger_deviceclass_regex_words");
+        osWordArray = prepareWordArray("udger_os_regex", "udger_os_regex_words");
+    }
+
+    private List<WordInfo>[] prepareWordArray(String regexTableName, String wordTableName) throws SQLException {
+
+        final int arrayDimension = 'z' - 'a';
+        final int arraySize = (arrayDimension + 1) * (arrayDimension + 1);
+
+        List<WordInfo> wordArray[] = new List[arraySize];
+
+        ResultSet usedRs = connection.createStatement().executeQuery("SELECT id FROM " + wordTableName);
+        Set<Integer> usedWords = new HashSet<>();
+        if (usedRs != null) {
+            while (usedRs.next()) {
+                usedWords.add(usedRs.getInt("id"));
+            }
+        }
+
+        ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM " + wordTableName);
+        if (rs != null) {
+//            System.out.println("" + arrayDimension);
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                if (usedWords.contains(id)) {
+                    String word = rs.getString("word").toLowerCase();
+                    int index = (word.charAt(0) - 'a') * arrayDimension + word.charAt(1) - 'a';
+                    if (index >= 0 && index < arraySize) {
+                        List<WordInfo> wList = wordArray[index];
+                        if (wList == null) {
+                            wList = new ArrayList<>();
+                            wordArray[index] = wList;
+                        }
+                        wList.add(new WordInfo(id, word));
+                    } else {
+                        System.out.println("Index out of hashmap" + id + " : "+ word);
+                    }
+                }
+            }
+        }
+        return wordArray;
+    }
+
+    private List<Integer> findWordsInString(List<WordInfo> wordArray[], String uaString) {
+        long tm1 = System.nanoTime();
+
+        List<Integer> ret = new ArrayList<>();
+        ret.add(0);
+
+        final String s = uaString.toLowerCase();
+        final int dimension = 'z' - 'a';
+        for(int i=0; i < s.length()-2; i++) {
+            final char c1 = s.charAt(i);
+            final char c2 = s.charAt(i + 1);
+            if (c1 >= 'a' && c1 <= 'z' && c2 >= 'a' && c2 <= 'z') {
+                final int index = (c1 - 'a') * dimension + c2 - 'a';
+                List<WordInfo> l = wordArray[index];
+                if (l != null) {
+                    final String substr = s.substring(i);
+                    for (WordInfo wi : l) {
+                        perfData.incSubstrChecks();
+                        if (substr.startsWith(wi.word)){
+                            ret.add(wi.id);
+                        }
+                    }
+                }
+            }
+        }
+        perfData.addFindWordsTime(System.nanoTime() - tm1);
+        perfData.addRegexArrayParams(ret.size());
+        return ret;
     }
 
     public UdgerParser(String dbFileName) {
@@ -65,39 +165,8 @@ public class UdgerParser implements Closeable {
     @Override
     public void close() throws IOException {
         try {
+            // TODO : close prepared statements
             if (connection != null && !connection.isClosed()) {
-                if (sqlCrawlerPreparedStatement != null) {
-                    sqlCrawlerPreparedStatement.close();
-                    sqlCrawlerPreparedStatement = null;
-                }
-                if (sqlClientPreparedStatement != null) {
-                    sqlClientPreparedStatement.close();
-                    sqlClientPreparedStatement = null;
-                }
-                if (sqlOsPreparedStatement != null) {
-                    sqlOsPreparedStatement.close();
-                    sqlOsPreparedStatement = null;
-                }
-                if (sqlClientOsPreparedStatement != null) {
-                    sqlClientOsPreparedStatement.close();
-                    sqlClientOsPreparedStatement = null;
-                }
-                if (sqlDevicePreparedStatement != null) {
-                    sqlDevicePreparedStatement.close();
-                    sqlDevicePreparedStatement = null;
-                }
-                if (sqlClientClassPreparedStatement != null) {
-                    sqlClientClassPreparedStatement.close();
-                    sqlClientClassPreparedStatement = null;
-                }
-                if (sqlIpPreparedStatement != null) {
-                    sqlIpPreparedStatement.close();
-                    sqlIpPreparedStatement = null;
-                }
-                if (sqlDataCenterPreparedStatement != null) {
-                    sqlDataCenterPreparedStatement.close();
-                    sqlDataCenterPreparedStatement = null;
-                }
                 connection.close();
                 connection = null;
             }
@@ -112,6 +181,8 @@ public class UdgerParser implements Closeable {
 
         connect();
 
+        perfData.incCallCount();
+
         Integer clientId = null;
         Integer classId = null;
 
@@ -119,66 +190,100 @@ public class UdgerParser implements Closeable {
             sqlCrawlerPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_CRAWLER);
         }
 
-        ResultSet userAgentRs = getFirstRow(sqlCrawlerPreparedStatement, uaString);
+        ResultSet userAgentRs = getFirstRow("sqlCrawler", sqlCrawlerPreparedStatement, uaString);
         if (userAgentRs != null && userAgentRs.next()) {
             fetchUserAgent(userAgentRs, ret);
             classId = 99;
             clientId = -1;
         } else {
-            if (sqlClientPreparedStatement == null) {
-                sqlClientPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_CLIENT);
+            List<Integer> foundClientWords = findWordsInString(clientWordArray, uaString);
+            boolean clientFound = false;
+            if (foundClientWords.size() > 0) {
+                PreparedStatement sqlClientPreparedStatement = getPreparedStatement(UdgerSqlQuery.SQL_CLIENT_ENHANCED, foundClientWords, sqlClientPrepStmtList);
+                userAgentRs = getFirstRowEnhanced("sqlClient", sqlClientPreparedStatement, foundClientWords, uaString);
+                if (userAgentRs != null && userAgentRs.next()) {
+                    fetchUserAgent(userAgentRs, ret);
+                    classId = ret.getClassId();
+                    clientId = ret.getClientId();
+                    patchVersions(ret);
+                    clientFound = true;
+                }
             }
-            userAgentRs = getFirstRow(sqlClientPreparedStatement, uaString);
-            if (userAgentRs != null && userAgentRs.next()) {
-                fetchUserAgent(userAgentRs, ret);
-                classId = ret.getClassId();
-                clientId = ret.getClientId();
-                patchVersions(ret);
-            } else {
+            if (!clientFound) {
                 ret.setUaClass("Unrecognized");
                 ret.setUaClassCode("unrecognized");
             }
         }
 
-        if (sqlOsPreparedStatement == null) {
-            sqlOsPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_OS);
+        List<Integer> foundOsWords = findWordsInString(osWordArray, uaString);
+        boolean osFound = false;
+        if (foundOsWords.size() > 0) {
+            PreparedStatement sqlOsPreparedStatement = getPreparedStatement(UdgerSqlQuery.SQL_OS_ENHANCED, foundOsWords, sqlOsPrepStmtList);
+            ResultSet opSysRs = getFirstRowEnhanced("sqlOs", sqlOsPreparedStatement, foundOsWords, uaString);
+            if (opSysRs != null && opSysRs.next()) {
+                fetchOperatingSystem(opSysRs, ret);
+                osFound = true;
+            }
         }
-        ResultSet opSysRs = getFirstRow(sqlOsPreparedStatement, uaString);
-        if (opSysRs != null && opSysRs.next()) {
-            fetchOperatingSystem(opSysRs, ret);
-        } else {
+
+        if (!osFound) {
             if (clientId != null && clientId != 0) {
                 if (sqlClientOsPreparedStatement == null) {
                     sqlClientOsPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_CLIENT_OS);
                 }
-                opSysRs = getFirstRow(sqlClientOsPreparedStatement, clientId.toString());
+                ResultSet opSysRs = getFirstRow("sqlClientOs", sqlClientOsPreparedStatement, clientId.toString());
                 if (opSysRs != null && opSysRs.next()) {
                     fetchOperatingSystem(opSysRs, ret);
                 }
             }
         }
 
-        if (sqlDevicePreparedStatement == null) {
-            sqlDevicePreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_DEVICE);
-        }
-        ResultSet devRs = getFirstRow(sqlDevicePreparedStatement, uaString);
-        if (devRs != null  && devRs.next()) {
-            fetchDevice(devRs, ret);
-        } else {
-            if (classId != null && classId != -1) {
-                if (sqlClientClassPreparedStatement == null) {
-                    sqlClientClassPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_CLIENT_CLASS);
-                }
-                devRs = getFirstRow(sqlClientClassPreparedStatement, classId.toString());
-                if (devRs != null && devRs.next()) {
-                    fetchDevice(devRs, ret);
-                }
+        List<Integer> foundDeviceWords = findWordsInString(deviceWordArray, uaString);
+        boolean deviceFound = false;
+        if (foundDeviceWords.size() > 0) {
+            PreparedStatement sqlDevicePreparedStatement = getPreparedStatement(UdgerSqlQuery.SQL_DEVICE_ENHANCED, foundDeviceWords, sqlDevicePrepStmtList);
+            ResultSet devRs = getFirstRowEnhanced("sqlDevice", sqlDevicePreparedStatement, foundDeviceWords, uaString);
+            if (devRs != null  && devRs.next()) {
+                fetchDevice(devRs, ret);
+                deviceFound = true;
             }
+        }
+
+        if (!deviceFound) {
+          if (classId != null && classId != -1) {
+              if (sqlClientClassPreparedStatement == null) {
+                  sqlClientClassPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_CLIENT_CLASS);
+              }
+              ResultSet devRs = getFirstRow("sqlClientClass", sqlClientClassPreparedStatement, classId.toString());
+              if (devRs != null && devRs.next()) {
+                  fetchDevice(devRs, ret);
+              }
+          }
         }
 
         return ret;
     }
 
+    private PreparedStatement getPreparedStatement(String enhancedSql, List<Integer> foundWords,
+            ArrayList<PreparedStatement> prepStmtList) throws SQLException {
+        int wordCount = foundWords.size();
+
+        while (wordCount > prepStmtList.size()) {
+            prepStmtList.add(null);
+        }
+
+        PreparedStatement result = prepStmtList.get(wordCount-1);
+        if (result == null) {
+            StringBuilder paramList = new StringBuilder();
+            for (int i = 0; i < wordCount; i++) {
+                paramList.append(",?");
+            }
+            String sql = String.format(enhancedSql, paramList.toString().substring(1));
+            result = connection.prepareStatement(sql);
+            prepStmtList.set(wordCount-1, result);
+        }
+        return result;
+    }
 
     public UdgerIpResult parseIp(String ipString) throws SQLException, UnknownHostException {
 
@@ -206,7 +311,7 @@ public class UdgerParser implements Closeable {
         if (sqlIpPreparedStatement == null) {
             sqlIpPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_IP);
         }
-        ResultSet ipRs = getFirstRow(sqlIpPreparedStatement, normalizedIp);
+        ResultSet ipRs = getFirstRow("sqlIp", sqlIpPreparedStatement, normalizedIp);
 
         if (ipRs != null && ipRs.next()) {
             fetchUdgerIp(ipRs, ret);
@@ -220,7 +325,7 @@ public class UdgerParser implements Closeable {
             if (sqlDataCenterPreparedStatement == null) {
                 sqlDataCenterPreparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_DATACENTER);
             }
-            ResultSet dataCenterRs = getFirstRow(sqlDataCenterPreparedStatement, ipv4int, ipv4int);
+            ResultSet dataCenterRs = getFirstRow("sqlDataCenter", sqlDataCenterPreparedStatement, ipv4int, ipv4int);
             if (dataCenterRs != null && dataCenterRs.next()) {
                 fetchDataCenter(dataCenterRs, ret);
             }
@@ -252,6 +357,8 @@ public class UdgerParser implements Closeable {
                         patRegex = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
                         regexCache.put(oldRegex, patRegex);
                     }
+                    regexCount ++;
+
                     Matcher matcher = patRegex.matcher(param);
                     boolean found = matcher.find();
                     if (found) {
@@ -263,12 +370,41 @@ public class UdgerParser implements Closeable {
         }
     }
 
-    private ResultSet getFirstRow(PreparedStatement preparedStatement, Object ... params) throws SQLException {
+    private ResultSet getFirstRowEnhanced(String sqlId, PreparedStatement preparedStatement, Object ... params) throws SQLException {
+        int paramIndex = 0;
+        for (int i=0; i < params.length; i++) {
+            if (params[i] instanceof List) {
+                List<?> l = (List<?>) params[i];
+                for (Object listParam: l) {
+                    preparedStatement.setObject(paramIndex + 1, listParam);
+                    paramIndex ++;
+                }
+
+            } else {
+                preparedStatement.setObject(paramIndex + 1, params[i]);
+                paramIndex ++;
+            }
+        }
+        preparedStatement.setMaxRows(1);
+        long tm1 = System.nanoTime();
+        ResultSet result = preparedStatement.executeQuery();
+        long tm2 = System.nanoTime();
+        perfData.addTime(sqlId, tm2 - tm1);
+        perfData.incCount(sqlId);
+        return result;
+    }
+
+    private ResultSet getFirstRow(String sqlId, PreparedStatement preparedStatement, Object ... params) throws SQLException {
+        long tm1 = System.nanoTime();
         for (int i=0; i < params.length; i++) {
             preparedStatement.setObject(i + 1, params[i]);
         }
         preparedStatement.setMaxRows(1);
-        return preparedStatement.executeQuery();
+        ResultSet result = preparedStatement.executeQuery();
+        long tm2 = System.nanoTime();
+        perfData.addTime(sqlId, tm2 - tm1);
+        perfData.incCount(sqlId);
+        return result;
     }
 
 
@@ -322,10 +458,8 @@ public class UdgerParser implements Closeable {
     private void patchVersions(UdgerUaResult ret) {
         if (lastPatternMatcher != null) {
             String version = "";
-            try {
+            if (lastPatternMatcher.groupCount() > 1) {
                 version = lastPatternMatcher.group(1);
-            } catch (IndexOutOfBoundsException e) {
-                // swallow
             }
             ret.setUaVersion(version);
             ret.setUaVersionMajor(version.split("\\.")[0]);
@@ -369,5 +503,10 @@ public class UdgerParser implements Closeable {
         ret.setDataCenterHomePage(nvl(rs.getString("datacenter_homepage")));
         ret.setDataCenterName(nvl(rs.getString("datacenter_name")));
         ret.setDataCenterNameCode(nvl(rs.getString("datacenter_name_code")));
+    }
+
+
+    public void printPerformanceData() {
+        perfData.print(regexCount, regexCache.size());
     }
 }
