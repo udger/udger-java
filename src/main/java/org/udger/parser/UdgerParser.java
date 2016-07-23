@@ -59,12 +59,11 @@ public class UdgerParser implements Closeable {
     private Matcher lastPatternMatcher;
     private int regexCount = 0;
 
-    private PreparedStatement sqlCrawlerPreparedStatement;
-
     private final ArrayList<PreparedStatement> sqlClientPrepStmtList = new ArrayList<>();
     private final ArrayList<PreparedStatement> sqlDevicePrepStmtList = new ArrayList<>();
     private final ArrayList<PreparedStatement> sqlOsPrepStmtList = new ArrayList<>();
 
+    private PreparedStatement sqlCrawlerPreparedStatement;
     private PreparedStatement sqlClientOsPreparedStatement;
     private PreparedStatement sqlClientClassPreparedStatement;
     private PreparedStatement sqlIpPreparedStatement;
@@ -73,15 +72,20 @@ public class UdgerParser implements Closeable {
     public UdgerParser() {
     }
 
-
     public void prepareParser() throws SQLException {
         connect();
-        clientWordArray = prepareWordArray("udger_client_regex", "udger_client_regex_words");
-        deviceWordArray = prepareWordArray("udger_deviceclass_regex", "udger_deviceclass_regex_words");
-        osWordArray = prepareWordArray("udger_os_regex", "udger_os_regex_words");
+        initStaticStructures(connection);
     }
 
-    private List<WordInfo>[] prepareWordArray(String regexTableName, String wordTableName) throws SQLException {
+    private static synchronized void initStaticStructures(Connection connection) throws SQLException {
+        if (clientWordArray == null) {
+            clientWordArray = prepareWordArray(connection, "udger_client_regex", "udger_client_regex_words");
+            deviceWordArray = prepareWordArray(connection, "udger_deviceclass_regex", "udger_deviceclass_regex_words");
+            osWordArray = prepareWordArray(connection, "udger_os_regex", "udger_os_regex_words");
+        }
+    }
+
+    private static List<WordInfo>[] prepareWordArray(Connection connection, String regexTableName, String wordTableName) throws SQLException {
 
         final int arrayDimension = 'z' - 'a';
         final int arraySize = (arrayDimension + 1) * (arrayDimension + 1);
@@ -98,7 +102,6 @@ public class UdgerParser implements Closeable {
 
         ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM " + wordTableName);
         if (rs != null) {
-//            System.out.println("" + arrayDimension);
             while (rs.next()) {
                 int id = rs.getInt("id");
                 if (usedWords.contains(id)) {
@@ -138,7 +141,7 @@ public class UdgerParser implements Closeable {
                     final String substr = s.substring(i);
                     for (WordInfo wi : l) {
                         perfData.incSubstrChecks();
-                        if (substr.startsWith(wi.word)){
+                        if (substr.startsWith(wi.word)) {
                             ret.add(wi.id);
                         }
                     }
@@ -165,13 +168,45 @@ public class UdgerParser implements Closeable {
     @Override
     public void close() throws IOException {
         try {
-            // TODO : close prepared statements
+            if (sqlCrawlerPreparedStatement != null) {
+                sqlCrawlerPreparedStatement.close();
+                sqlCrawlerPreparedStatement = null;
+            }
+            if (sqlClientOsPreparedStatement != null) {
+                sqlClientOsPreparedStatement.close();
+                sqlClientOsPreparedStatement = null;
+            }
+            if (sqlClientClassPreparedStatement != null) {
+                sqlClientClassPreparedStatement.close();
+                sqlClientClassPreparedStatement = null;
+            }
+            if (sqlIpPreparedStatement != null) {
+                sqlIpPreparedStatement.close();
+                sqlIpPreparedStatement = null;
+            }
+            if (sqlDataCenterPreparedStatement != null) {
+                sqlDataCenterPreparedStatement.close();
+                sqlDataCenterPreparedStatement = null;
+            }
+            closeStatementList(sqlClientPrepStmtList);
+            closeStatementList(sqlDevicePrepStmtList);
+            closeStatementList(sqlOsPrepStmtList);
             if (connection != null && !connection.isClosed()) {
                 connection.close();
                 connection = null;
             }
         } catch (SQLException e) {
             throw new IOException(e.getMessage());
+        }
+    }
+
+    private void closeStatementList(ArrayList<PreparedStatement> stmtList) throws SQLException {
+        for (int i = 0; i < stmtList.size(); i++) {
+            PreparedStatement stmt = stmtList.get(i);
+            if (stmt != null) {
+                stmt.close();
+                stmtList.set(i, null);
+            }
         }
     }
 
