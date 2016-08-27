@@ -58,7 +58,7 @@ public class PerformanceData {
         double avg = 0.0;
         if (count != 0)
             avg = time / (double) count;
-        System.out.println(avg + "ns : " + sqlId);
+        System.out.println(String.format("%.1f", avg) + "ns : " + sqlId);
         return time;
     }
 
