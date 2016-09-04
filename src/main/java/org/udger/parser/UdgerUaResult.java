@@ -59,6 +59,14 @@ public class UdgerUaResult implements Serializable {
     private String deviceClassIconBig = "";
     private String deviceClassInfoUrl = "";
 
+    private String deviceMarketname = "";
+    private String deviceBrand = "";
+    private String deviceBrandCode = "";
+    private String deviceBrandHomepage = "";
+    private String deviceBrandIcon = "";
+    private String deviceBrandIconBig = "";
+    private String deviceBrandInfoUrl = "";
+
     public UdgerUaResult(String uaString) {
         this.uaString = uaString;
     }
@@ -296,6 +304,62 @@ public class UdgerUaResult implements Serializable {
     }
     public void setDeviceClassInfoUrl(String deviceClassInfoUrl) {
         this.deviceClassInfoUrl = deviceClassInfoUrl;
+    }
+
+    public String getDeviceMarketname() {
+        return deviceMarketname;
+    }
+
+    public void setDeviceMarketname(String deviceMarketname) {
+        this.deviceMarketname = deviceMarketname;
+    }
+
+    public String getDeviceBrand() {
+        return deviceBrand;
+    }
+
+    public void setDeviceBrand(String deviceBrand) {
+        this.deviceBrand = deviceBrand;
+    }
+
+    public String getDeviceBrandCode() {
+        return deviceBrandCode;
+    }
+
+    public void setDeviceBrandCode(String deviceBrandCode) {
+        this.deviceBrandCode = deviceBrandCode;
+    }
+
+    public String getDeviceBrandHomepage() {
+        return deviceBrandHomepage;
+    }
+
+    public void setDeviceBrandHomepage(String deviceBrandHomepage) {
+        this.deviceBrandHomepage = deviceBrandHomepage;
+    }
+
+    public String getDeviceBrandIcon() {
+        return deviceBrandIcon;
+    }
+
+    public void setDeviceBrandIcon(String deviceBrandIcon) {
+        this.deviceBrandIcon = deviceBrandIcon;
+    }
+
+    public String getDeviceBrandIconBig() {
+        return deviceBrandIconBig;
+    }
+
+    public void setDeviceBrandIconBig(String deviceBrandIconBig) {
+        this.deviceBrandIconBig = deviceBrandIconBig;
+    }
+
+    public String getDeviceBrandInfoUrl() {
+        return deviceBrandInfoUrl;
+    }
+
+    public void setDeviceBrandInfoUrl(String deviceBrandInfoUrl) {
+        this.deviceBrandInfoUrl = deviceBrandInfoUrl;
     }
 
 }

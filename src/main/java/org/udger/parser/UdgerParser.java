@@ -27,6 +27,8 @@ import org.sqlite.Function;
 
 public class UdgerParser implements Closeable {
 
+    private static final String UDGER_UA_DEV_BRAND_LIST_URL = "https://udger.com/resources/ua-list/devices-brand-detail?brand=";
+
     private static final String DB_FILENAME = "udgerdb_v3.dat";
 
     private static final Pattern PAT_UNPERLIZE = Pattern.compile("^/?(.*?)/si$");
@@ -116,9 +118,44 @@ public class UdgerParser implements Closeable {
             }
         }
 
+        if (ret.getOsFamilyCode() != null && !ret.getOsFamilyCode().isEmpty()) {
+            fetchDeviceBrand(uaString, ret);
+        }
+
         return ret;
     }
 
+
+    private void fetchDeviceBrand(String uaString, UdgerUaResult ret) throws SQLException {
+        PreparedStatement preparedStatement = connection.prepareStatement(UdgerSqlQuery.SQL_DEVICE_REGEX);
+        preparedStatement.setObject(1, ret.getOsFamilyCode());
+        preparedStatement.setObject(2, ret.getOsCode());
+        ResultSet devRegexRs  = preparedStatement.executeQuery();
+        if (devRegexRs != null) {
+            while (devRegexRs.next()) {
+                String devId = devRegexRs.getString("id");
+                String regex = devRegexRs.getString("regstring");
+                if (devId != null && regex != null) {
+                    Pattern patRegex = getRegexFromCache(regex);
+                    Matcher matcher = patRegex.matcher(uaString);
+                    if (matcher.matches()) {
+                        ResultSet devNameListRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE_NAME_LIST, devId, matcher.group(1));
+                        if (devNameListRs != null && devNameListRs.next()) {
+                            ret.setDeviceMarketname(devNameListRs.getString("marketname"));
+                            ret.setDeviceBrand(devNameListRs.getString("brand"));
+                            ret.setDeviceBrandCode(devNameListRs.getString("brand_code"));
+                            ret.setDeviceBrandHomepage(devNameListRs.getString("brand_url"));
+                            ret.setDeviceBrandIcon(devNameListRs.getString("icon"));
+                            ret.setDeviceBrandIconBig(devNameListRs.getString("icon_big"));
+                            ret.setDeviceBrandInfoUrl(UDGER_UA_DEV_BRAND_LIST_URL + devNameListRs.getString("brand_code"));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+    }
 
     public UdgerIpResult parseIp(String ipString) throws SQLException, UnknownHostException {
 
@@ -176,15 +213,7 @@ public class UdgerParser implements Closeable {
                 public void xFunc() throws SQLException {
                     String regex = value_text(0);
                     String param = value_text(1);
-                    Pattern patRegex = regexCache.get(regex);
-                    if (patRegex == null) {
-                        Matcher m = PAT_UNPERLIZE.matcher(regex);
-                        if (m.matches()) {
-                            regex = m.group(1);
-                        }
-                        patRegex = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-                        regexCache.put(regex, patRegex);
-                    }
+                    Pattern patRegex = getRegexFromCache(regex);
                     Matcher matcher = patRegex.matcher(param);
                     boolean found = matcher.find();
                     if (found) {
@@ -192,8 +221,22 @@ public class UdgerParser implements Closeable {
                     }
                     result(found ? 1 : 0);
                 }
+
             });
         }
+    }
+
+    private Pattern getRegexFromCache(String regex) {
+        Pattern patRegex = regexCache.get(regex);
+        if (patRegex == null) {
+            Matcher m = PAT_UNPERLIZE.matcher(regex);
+            if (m.matches()) {
+                regex = m.group(1);
+            }
+            patRegex = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+            regexCache.put(regex, patRegex);
+        }
+        return patRegex;
     }
 
     private ResultSet getFirstRow(String query, Object ... params) throws SQLException {

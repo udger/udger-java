@@ -113,7 +113,6 @@ public class UdgerSqlQuery {
         "WHERE " +
             "client_id = ?";
 
-
     private static final String DEVICE_COLUMNS =
             "name AS device_class, " +
             "name_code AS device_class_code, " +
@@ -198,4 +197,30 @@ public class UdgerSqlQuery {
             "udger_datacenter_list ON udger_datacenter_range.datacenter_id = udger_datacenter_list.id " +
         "WHERE " +
             "iplong_from <= ? AND iplong_to >= ?";
+
+    public static final String SQL_DEVICE_REGEX =
+        "SELECT " +
+            "id," +
+            "regstring " +
+        "FROM " +
+            "udger_devicename_regex " +
+        "WHERE " +
+            "os_family_code=? AND (os_code='-all-' OR os_code=?) " +
+        "ORDER BY sequence";
+
+    public static final String SQL_DEVICE_NAME_LIST =
+        "SELECT " +
+            "marketname," +
+            "brand_code," +
+            "brand," +
+            "brand_url," +
+            "icon," +
+            "icon_big " +
+        "FROM " +
+            "udger_devicename_list " +
+        "JOIN " +
+            "udger_devicename_brand ON udger_devicename_brand.id=udger_devicename_list.brand_id " +
+        "WHERE " +
+            "regex_id = ? AND code = ?";
+
 }
