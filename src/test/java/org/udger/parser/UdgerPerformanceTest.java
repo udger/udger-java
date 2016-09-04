@@ -16,7 +16,7 @@ public class UdgerPerformanceTest {
     private static void createPool() {
         POOL = new UdgerParser[10];
         for (int i=0; i<=9; i++) {
-            POOL[i] = new UdgerParser("/home/lada/Download/udgerdb_v3_" + i + ".dat");
+            POOL[i] = new UdgerParser("udgerdb_v3_" + i + ".dat");
         }
     }
 
@@ -41,7 +41,7 @@ public class UdgerPerformanceTest {
     private static void testSerial() {
         UdgerParser up = null;
         try {
-            up = new UdgerParser("/home/lada/Download/udgerdb_v3.dat");
+            up = new UdgerParser("udgerdb_v3.dat");
             up.prepareParser();
             long tm = 0;
             for (int j=0; j<100; j++) {

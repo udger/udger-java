@@ -10,6 +10,10 @@ package org.udger.parser;
 
 public class UdgerSqlQuery {
 
+	private static String duplicatePercentChar(String s) {
+        return s.replaceAll("%", "%%");
+    }
+
     public static final String SQL_CRAWLER =
         "SELECT " +
             "NULL AS client_id, " +
@@ -263,8 +267,46 @@ public class UdgerSqlQuery {
         "WHERE " +
             "iplong_from <= ? AND iplong_to >= ?";
 
-    private static String duplicatePercentChar(String s) {
-        return s.replaceAll("%", "%%");
-    }
+    public static final String SQL_DATACENTER_RANGE6 =
+        "SELECT " +
+            DATACENTER_COLUMNS +
+        "FROM " +
+            "udger_datacenter_range6 " +
+        "JOIN " +
+            "udger_datacenter_list ON udger_datacenter_range6.datacenter_id=udger_datacenter_list.id " +
+        "WHERE " +
+            "iplong_from0 <= ? AND iplong_to0 >= ? AND " +
+            "iplong_from1 <= ? AND iplong_to1 >= ? AND " +
+            "iplong_from2 <= ? AND iplong_to2 >= ? AND " +
+            "iplong_from3 <= ? AND iplong_to3 >= ? AND " +
+            "iplong_from4 <= ? AND iplong_to4 >= ? AND " +
+            "iplong_from5 <= ? AND iplong_to5 >= ? AND " +
+            "iplong_from6 <= ? AND iplong_to6 >= ? AND " +
+            "iplong_from7 <= ? AND iplong_to7 >=?";
+
+    public static final String SQL_DEVICE_REGEX =
+        "SELECT " +
+            "id," +
+            "regstring " +
+        "FROM " +
+            "udger_devicename_regex " +
+        "WHERE " +
+            "os_family_code=? AND (os_code='-all-' OR os_code=?) " +
+        "ORDER BY sequence";
+
+    public static final String SQL_DEVICE_NAME_LIST =
+        "SELECT " +
+            "marketname," +
+            "brand_code," +
+            "brand," +
+            "brand_url," +
+            "icon," +
+            "icon_big " +
+        "FROM " +
+            "udger_devicename_list " +
+        "JOIN " +
+            "udger_devicename_brand ON udger_devicename_brand.id=udger_devicename_list.brand_id " +
+        "WHERE " +
+            "regex_id = ? AND code = ?";
 
 }
