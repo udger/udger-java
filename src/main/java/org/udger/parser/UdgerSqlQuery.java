@@ -198,6 +198,23 @@ public class UdgerSqlQuery {
         "WHERE " +
             "iplong_from <= ? AND iplong_to >= ?";
 
+    public static final String SQL_DATACENTER_RANGE6 =
+        "SELECT " +
+            DATACENTER_COLUMNS +
+        "FROM " +
+            "udger_datacenter_range6 " +
+        "JOIN " +
+            "udger_datacenter_list ON udger_datacenter_range6.datacenter_id=udger_datacenter_list.id " +
+        "WHERE " +
+            "iplong_from0 <= ? AND iplong_to0 >= ? AND " +
+            "iplong_from1 <= ? AND iplong_to1 >= ? AND " +
+            "iplong_from2 <= ? AND iplong_to2 >= ? AND " +
+            "iplong_from3 <= ? AND iplong_to3 >= ? AND " +
+            "iplong_from4 <= ? AND iplong_to4 >= ? AND " +
+            "iplong_from5 <= ? AND iplong_to5 >= ? AND " +
+            "iplong_from6 <= ? AND iplong_to6 >= ? AND " +
+            "iplong_from7 <= ? AND iplong_to7 >=?";
+
     public static final String SQL_DEVICE_REGEX =
         "SELECT " +
             "id," +

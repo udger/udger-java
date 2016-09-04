@@ -11,6 +11,7 @@ package org.udger.parser;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.Connection;
@@ -163,7 +164,7 @@ public class UdgerParser implements Closeable {
 
         InetAddress addr = InetAddress.getByName(ipString);
         Integer ipv4int = null;
-        String normalizedIp;
+        String normalizedIp = null;
 
         if (addr instanceof Inet4Address) {
             ipv4int = 0;
@@ -171,37 +172,62 @@ public class UdgerParser implements Closeable {
                 ipv4int = ipv4int << 8 | (b & 0xFF);
             }
             normalizedIp = addr.getHostAddress();
-        } else {
+        } else if (addr instanceof Inet6Address) {
             normalizedIp = addr.getHostAddress().replaceAll("((?:(?:^|:)0+\\b){2,}):?(?!\\S*\\b\\1:0+\\b)(\\S*)", "::$2");
         }
-
-        connect();
 
         ret.setIpClassification("Unrecognized");
         ret.setIpClassificationCode("unrecognized");
 
-        ResultSet ipRs = getFirstRow(UdgerSqlQuery.SQL_IP, normalizedIp);
+        if (normalizedIp != null) {
 
-        if (ipRs != null && ipRs.next()) {
-            fetchUdgerIp(ipRs, ret);
-            if (!ID_CRAWLER.equals(ret.getIpClassificationCode())) {
-                ret.setCrawlerFamilyInfoUrl("");
-            }
-        }
+            connect();
 
-        if (ipv4int != null) {
-            ret.setIpVer(4);
-            ResultSet dataCenterRs = getFirstRow(UdgerSqlQuery.SQL_DATACENTER, ipv4int, ipv4int);
-            if (dataCenterRs != null && dataCenterRs.next()) {
-                fetchDataCenter(dataCenterRs, ret);
+            ResultSet ipRs = getFirstRow(UdgerSqlQuery.SQL_IP, normalizedIp);
+
+            if (ipRs != null && ipRs.next()) {
+                fetchUdgerIp(ipRs, ret);
+                if (!ID_CRAWLER.equals(ret.getIpClassificationCode())) {
+                    ret.setCrawlerFamilyInfoUrl("");
+                }
             }
-        } else {
-            ret.setIpVer(6);
+
+            if (ipv4int != null) {
+                ret.setIpVer(4);
+                ResultSet dataCenterRs = getFirstRow(UdgerSqlQuery.SQL_DATACENTER, ipv4int, ipv4int);
+                if (dataCenterRs != null && dataCenterRs.next()) {
+                    fetchDataCenter(dataCenterRs, ret);
+                }
+            } else {
+                ret.setIpVer(6);
+                int[] ipArray = ip6ToArray((Inet6Address) addr);
+                ResultSet dataCenterRs = getFirstRow(UdgerSqlQuery.SQL_DATACENTER_RANGE6,
+                        ipArray[0], ipArray[0],
+                        ipArray[1], ipArray[1],
+                        ipArray[2], ipArray[2],
+                        ipArray[3], ipArray[3],
+                        ipArray[4], ipArray[4],
+                        ipArray[5], ipArray[5],
+                        ipArray[6], ipArray[6],
+                        ipArray[7], ipArray[7]
+                        );
+                if (dataCenterRs != null && dataCenterRs.next()) {
+                    fetchDataCenter(dataCenterRs, ret);
+                }
+            }
         }
 
         return ret;
     }
 
+    public int[] ip6ToArray(Inet6Address addr) {
+        int ret[] = new int[8];
+        byte[] bytes = addr.getAddress();
+        for (int i=0; i < 8; i++) {
+            ret[i] = ((bytes [i*2] << 8 ) & 0xff00 )| (bytes[i*2+1] & 0xff);
+        }
+        return ret;
+    }
     private void connect() throws SQLException {
 
         if (connection == null) {
