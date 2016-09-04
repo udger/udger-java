@@ -16,7 +16,7 @@ public class UdgerUaTest {
         JsonArray ja = jr.readArray();
         UdgerParser up = null;
         try {
-            up = new UdgerParser("/home/lada/Download/udgerdb_v3.dat");
+            up = new UdgerParser("udgerdb_v3.dat");
             for (int i=0; i < ja.size(); i++) {
                 JsonObject jar = ja.getJsonObject(i);
                 JsonObject jor = jar.getJsonObject("ret");
