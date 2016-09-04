@@ -235,7 +235,7 @@ public class UdgerParser implements Closeable {
             boolean clientFound = false;
             if (foundClientWords.size() > 0) {
                 PreparedStatement sqlClientPreparedStatement = getPreparedStatement(UdgerSqlQuery.SQL_CLIENT_ENHANCED, foundClientWords, sqlClientPrepStmtList);
-                userAgentRs = getFirstRowEnhanced("sqlClient", sqlClientPreparedStatement, foundClientWords, uaString);
+                userAgentRs = getFirstRowEnhanced("sqlClient", sqlClientPreparedStatement, foundClientWords, foundClientWords, uaString);
                 if (userAgentRs != null && userAgentRs.next()) {
                     fetchUserAgent(userAgentRs, ret);
                     classId = ret.getClassId();
@@ -254,7 +254,7 @@ public class UdgerParser implements Closeable {
         boolean osFound = false;
         if (foundOsWords.size() > 0) {
             PreparedStatement sqlOsPreparedStatement = getPreparedStatement(UdgerSqlQuery.SQL_OS_ENHANCED, foundOsWords, sqlOsPrepStmtList);
-            ResultSet opSysRs = getFirstRowEnhanced("sqlOs", sqlOsPreparedStatement, foundOsWords, uaString);
+            ResultSet opSysRs = getFirstRowEnhanced("sqlOs", sqlOsPreparedStatement, foundOsWords, foundOsWords, uaString);
             if (opSysRs != null && opSysRs.next()) {
                 fetchOperatingSystem(opSysRs, ret);
                 osFound = true;
@@ -277,7 +277,7 @@ public class UdgerParser implements Closeable {
         boolean deviceFound = false;
         if (foundDeviceWords.size() > 0) {
             PreparedStatement sqlDevicePreparedStatement = getPreparedStatement(UdgerSqlQuery.SQL_DEVICE_ENHANCED, foundDeviceWords, sqlDevicePrepStmtList);
-            ResultSet devRs = getFirstRowEnhanced("sqlDevice", sqlDevicePreparedStatement, foundDeviceWords, uaString);
+            ResultSet devRs = getFirstRowEnhanced("sqlDevice", sqlDevicePreparedStatement, foundDeviceWords, foundDeviceWords, uaString);
             if (devRs != null  && devRs.next()) {
                 fetchDevice(devRs, ret);
                 deviceFound = true;
@@ -313,7 +313,8 @@ public class UdgerParser implements Closeable {
             for (int i = 0; i < wordCount; i++) {
                 paramList.append(",?");
             }
-            String sql = String.format(enhancedSql, paramList.toString().substring(1));
+            String param = paramList.toString().substring(1);
+            String sql = String.format(enhancedSql, param, param);
             result = connection.prepareStatement(sql);
             prepStmtList.set(wordCount-1, result);
         }
@@ -414,7 +415,6 @@ public class UdgerParser implements Closeable {
                     preparedStatement.setObject(paramIndex + 1, listParam);
                     paramIndex ++;
                 }
-
             } else {
                 preparedStatement.setObject(paramIndex + 1, params[i]);
                 paramIndex ++;

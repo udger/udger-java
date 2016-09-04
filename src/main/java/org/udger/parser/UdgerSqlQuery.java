@@ -108,7 +108,7 @@ public class UdgerSqlQuery {
         "JOIN " +
             "udger_client_class ON udger_client_class.id = udger_client_list.class_id " +
         "WHERE " +
-            "word_id IN (%1$s) AND ? REGEXP regstring " +
+            "word_id IN (%1$s) AND word2_id IN (%2$s) AND ? REGEXP regstring " +
         "ORDER BY " +
             "sequence ASC " +
         "LIMIT 1";
@@ -147,7 +147,7 @@ public class UdgerSqlQuery {
         "JOIN " +
             "udger_os_list ON udger_os_list.id = udger_os_regex.os_id " +
         "WHERE " +
-            "word_id IN (%1$s) AND ? REGEXP regstring " +
+            "word_id IN (%1$s) AND word2_id IN (%2$s) AND ? REGEXP regstring " +
         "ORDER BY " +
             "sequence ASC " +
         "LIMIT 1 ";
@@ -192,7 +192,7 @@ public class UdgerSqlQuery {
         "JOIN " +
             "udger_deviceclass_list ON udger_deviceclass_list.id = udger_deviceclass_regex.deviceclass_id " +
         "WHERE " +
-            "word_id IN (%1$s) AND ? REGEXP regstring " +
+            "word_id IN (%1$s)  AND word2_id IN (%2$s) AND ? REGEXP regstring " +
         "ORDER BY " +
             "sequence ASC " +
         "LIMIT 1";
