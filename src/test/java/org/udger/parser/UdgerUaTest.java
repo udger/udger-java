@@ -10,14 +10,14 @@ import javax.json.JsonReader;
 
 public class UdgerUaTest {
 
-    public static void main(String args[]) {
+    public static void main(String args[]) throws SQLException {
         InputStream is = UdgerUaTest.class.getResourceAsStream("test_ua.json");
         JsonReader jr = javax.json.Json.createReader(is);
         JsonArray ja = jr.readArray();
         UdgerParser up = null;
         try {
             up = new UdgerParser("udgerdb_v3.dat");
-            up.prepareParser();
+            up.prepare();
             for (int i=0; i < ja.size(); i++) {
                 JsonObject jar = ja.getJsonObject(i);
                 JsonObject jor = jar.getJsonObject("ret");
@@ -37,9 +37,6 @@ public class UdgerUaTest {
                     e.printStackTrace();
                 }
             }
-        } catch (SQLException e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
         } finally {
             if (up != null) {
                 try {
