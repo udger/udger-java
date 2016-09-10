@@ -42,7 +42,7 @@ public class UdgerPerformanceTest {
         UdgerParser up = null;
         try {
             up = new UdgerParser("udgerdb_v3.dat");
-            up.prepareParser();
+            up.prepare();
             long tm = 0;
             for (int j=0; j<100; j++) {
                 for (int i=0; i < jsonArray.size(); i++) {

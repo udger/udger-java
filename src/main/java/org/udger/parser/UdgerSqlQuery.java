@@ -10,10 +10,6 @@ package org.udger.parser;
 
 public class UdgerSqlQuery {
 
-	private static String duplicatePercentChar(String s) {
-        return s.replaceAll("%", "%%");
-    }
-
     public static final String SQL_CRAWLER =
         "SELECT " +
             "NULL AS client_id, " +
@@ -47,6 +43,7 @@ public class UdgerSqlQuery {
 
     public static final String SQL_CLIENT =
         "SELECT " +
+            "ur.rowid, " +
             "client_id AS client_id, " +
             "class_id AS class_id, " +
             "client_classification AS ua_class, " +
@@ -70,52 +67,13 @@ public class UdgerSqlQuery {
             "vendor_homepage AS ua_family_vendor_homepage, " +
             "'https://udger.com/resources/ua-list/browser-detail?browser=' || REPLACE(name, ' ', '%20') AS ua_family_info_url " +
         "FROM " +
-            "udger_client_regex " +
+            "udger_client_regex ur " +
         "JOIN " +
-            "udger_client_list ON udger_client_list.id = udger_client_regex.client_id " +
-        "JOIN " +
-            "udger_client_class ON udger_client_class.id = udger_client_list.class_id " +
-        "WHERE " +
-            "? REGEXP regstring " +
-        "ORDER BY " +
-            "sequence ASC " +
-        "LIMIT 1";
-
-    public static final String SQL_CLIENT_ENHANCED =
-        "SELECT " +
-            "client_id AS client_id, " +
-            "class_id AS class_id, " +
-            "client_classification AS ua_class, " +
-            "client_classification_code AS ua_class_code, " +
-            "name AS ua, " +
-            "engine AS ua_engine, " +
-            "NULL AS ua_version, " +
-            "NULL AS ua_version_major, " +
-            "NULL AS crawler_last_seen, " +
-            "NULL AS crawler_respect_robotstxt, " +
-            "NULL AS crawler_category, " +
-            "NULL AS crawler_category_code, " +
-            "uptodate_current_version AS ua_uptodate_current_version, " +
-            "name AS ua_family, " +
-            "name_code AS ua_family_code, " +
-            "homepage AS ua_family_homepage, " +
-            "icon AS ua_family_icon, " +
-            "icon_big AS ua_family_icon_big, " +
-            "vendor AS ua_family_vendor, " +
-            "vendor_code AS ua_family_vendor_code, " +
-            "vendor_homepage AS ua_family_vendor_homepage, " +
-            "'https://udger.com/resources/ua-list/browser-detail?browser=' || REPLACE(name, ' ', '%%20') AS ua_family_info_url " +
-        "FROM " +
-            "udger_client_regex " +
-        "JOIN " +
-            "udger_client_list ON udger_client_list.id = udger_client_regex.client_id " +
+            "udger_client_list ON udger_client_list.id = ur.client_id " +
         "JOIN " +
             "udger_client_class ON udger_client_class.id = udger_client_list.class_id " +
         "WHERE " +
-            "word_id IN (%1$s) AND word2_id IN (%2$s) AND ? REGEXP regstring " +
-        "ORDER BY " +
-            "sequence ASC " +
-        "LIMIT 1";
+            "ur.rowid=?";
 
     private static final String OS_COLUMNS =
             "family AS os_family, " +
@@ -132,29 +90,14 @@ public class UdgerSqlQuery {
 
     public static final String SQL_OS =
         "SELECT " +
+            "ur.rowid, " +
             OS_COLUMNS +
         "FROM " +
-            "udger_os_regex " +
+            "udger_os_regex ur " +
         "JOIN " +
-            "udger_os_list ON udger_os_list.id = udger_os_regex.os_id " +
+            "udger_os_list ON udger_os_list.id = ur.os_id " +
         "WHERE " +
-            "? REGEXP regstring " +
-        "ORDER BY " +
-            "sequence ASC " +
-        "LIMIT 1 ";
-
-    public static final String SQL_OS_ENHANCED =
-        "SELECT " +
-            duplicatePercentChar(OS_COLUMNS) +
-        "FROM " +
-            "udger_os_regex " +
-        "JOIN " +
-            "udger_os_list ON udger_os_list.id = udger_os_regex.os_id " +
-        "WHERE " +
-            "word_id IN (%1$s) AND word2_id IN (%2$s) AND ? REGEXP regstring " +
-        "ORDER BY " +
-            "sequence ASC " +
-        "LIMIT 1 ";
+            "ur.rowid=?";
 
     public static final String SQL_CLIENT_OS =
         "SELECT " +
@@ -164,9 +107,7 @@ public class UdgerSqlQuery {
         "JOIN " +
             "udger_os_list ON udger_os_list.id = udger_client_os_relation.os_id " +
         "WHERE " +
-            "client_id = ? " +
-        "LIMIT 1 ";
-
+            "client_id = ?";
 
     private static final String DEVICE_COLUMNS =
             "name AS device_class, " +
@@ -177,29 +118,15 @@ public class UdgerSqlQuery {
 
     public static final String SQL_DEVICE =
         "SELECT " +
+            "ur.rowid, " +
             DEVICE_COLUMNS +
         "FROM " +
-            "udger_deviceclass_regex " +
+            "udger_deviceclass_regex ur " +
         "JOIN " +
-            "udger_deviceclass_list ON udger_deviceclass_list.id = udger_deviceclass_regex.deviceclass_id " +
+            "udger_deviceclass_list ON udger_deviceclass_list.id = ur.deviceclass_id " +
         "WHERE " +
-            "? REGEXP regstring " +
-        "ORDER BY " +
-            "sequence ASC " +
-        "LIMIT 1";
-
-    public static final String SQL_DEVICE_ENHANCED =
-        "SELECT " +
-            duplicatePercentChar(DEVICE_COLUMNS) +
-        "FROM " +
-            "udger_deviceclass_regex " +
-        "JOIN " +
-            "udger_deviceclass_list ON udger_deviceclass_list.id = udger_deviceclass_regex.deviceclass_id " +
-        "WHERE " +
-            "word_id IN (%1$s)  AND word2_id IN (%2$s) AND ? REGEXP regstring " +
-        "ORDER BY " +
-            "sequence ASC " +
-        "LIMIT 1";
+            "ur.rowid=?"
+        ;
 
     public static final String SQL_CLIENT_CLASS =
         "SELECT " +
@@ -209,8 +136,7 @@ public class UdgerSqlQuery {
         "JOIN " +
             "udger_client_class ON udger_client_class.deviceclass_id = udger_deviceclass_list.id " +
         "WHERE " +
-            "udger_client_class.id = ? " +
-        "LIMIT 1 ";
+            "udger_client_class.id = ?";
 
     private static final String IP_COLUMNS =
             "ip_classification AS ip_classification, " +

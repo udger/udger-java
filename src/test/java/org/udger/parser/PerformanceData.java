@@ -39,7 +39,7 @@ public class PerformanceData {
         tm += printPreparedStmtTime("sqlClientClass");
         tm += printPreparedStmtTime("sqlIp");
         tm += printPreparedStmtTime("sqlDataCenter");
-        System.out.println("SQL total : " + tm);
+        System.out.println("SQL total : " + tm + "ns");
         System.out.println("REGEX Count :" + regexCount);
         System.out.println("REGEX Cache size :" + regexCacheSize);
         System.out.println("Call count : " + callCount);

@@ -2,7 +2,9 @@ package org.udger.parser;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class WordDetector implements Serializable {
 
@@ -48,12 +50,11 @@ public class WordDetector implements Serializable {
         }
     }
 
-    public List<Integer> findWords(PerformanceData perfData, String text) {
+    public Set<Integer> findWords(PerformanceData perfData, String text) {
 
         long tm1 = System.nanoTime();
 
-        List<Integer> ret = new ArrayList<>();
-        ret.add(0);
+        Set<Integer> ret = new HashSet<>();
 
         final String s = text.toLowerCase();
         final int dimension = 'z' - 'a';
