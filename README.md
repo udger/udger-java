@@ -67,6 +67,8 @@ and from a UNIX (Linux, Mac OS X, etc) udger db file `/home/john/work/udgerdb_v3
 ### Automatic updates download
 - for autoupdate data use Udger data updater (https://udger.com/support/documentation/?doc=62)
 
+### Documentation for programmers
+- https://udger.com/pub/documentation/parser/JAVA/html/
 
 ### Author
 The Udger.com Team (info@udger.com)
