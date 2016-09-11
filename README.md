@@ -5,6 +5,7 @@ It also provides information about IP addresses (Public proxies, VPN services, T
 
 
 - Tested with more the 50.000 unique user agents.
+- Process thousands queries per second
 - Up to date data provided by https://udger.com/
 - Support for >=Java6
 
@@ -30,35 +31,31 @@ Udger data is stored in SQLite database file. Udger-java connects to SqLite usin
 Example how to create UdgerParser from udger db file `C:\work\udgerdb_v3.dat` (in Windows)
 
     UdgerParser up = = new UdgerParser("C:/work/udgerdb_v3.dat");
+    up.prepare();
 
 
 and from a UNIX (Linux, Mac OS X, etc) udger db file `/home/john/work/udgerdb_v3.dat`
 
-    UdgerParser up = = new UdgerParser("/home/john/work/udgerdb_v3.dat");       
-   
+    UdgerParser up = = new UdgerParser("/home/john/work/udgerdb_v3.dat");
+    up.prepare();
+
+
+Since the SQLite connection creating is time consuming task, it is recommended to keep the UdgerParser's instances in
+an instance pool. UdgerParser is not thread safe object, therefore it can't be used from multiple thread simultaneously.
 
 #### Sample.java
 
 ```java
     public class Sample {
       public static void main(String[] args) {
-        UdgerParser up = null;
-        try {
-            up = new UdgerParser("/home/john/work/udgerdb_v3.dat");
+        try (UdgerParser up = new UdgerParser("/home/john/work/udgerdb_v3.dat")) {
+            up.prepare();
             UdgerUaResult uaRet = up.parseUa("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9");
             UdgerIpResult ipRet = up.parseIp("108.61.199.93");
         } catch (SQLException e) {
             e.printStackTrace();
         } catch (UnknownHostException e) {
-            e.
-            printStackTrace();
-        } finally {
-            if (up != null) {
-                try {
-                    up.close();
-                } catch (IOException e) {
-                }
-            }
+            e.printStackTrace();
         }
       }
     }
@@ -72,4 +69,4 @@ and from a UNIX (Linux, Mac OS X, etc) udger db file `/home/john/work/udgerdb_v3
 The Udger.com Team (info@udger.com)
 
 ### old v1 format
-If you still use the previous format of the db (v1), you can use https://github.com/adhar1985/DIUASparser   
+If you still use the previous format of the db (v1), you can use https://github.com/adhar1985/DIUASparser
