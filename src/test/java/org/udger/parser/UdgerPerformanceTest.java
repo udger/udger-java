@@ -1,8 +1,12 @@
 package org.udger.parser;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.json.JsonArray;
 import javax.json.JsonObject;
@@ -29,12 +33,72 @@ public class UdgerPerformanceTest {
     }
 
     public static void main(String args[]) {
+        testUaTxt();
+    }
+
+    private static void testUaTxt() {
+        InputStream is = UdgerUaTest.class.getResourceAsStream("ua.txt");
+
+        List<String> uaStringList = new ArrayList<>();
+        BufferedReader in = null;
+        try {
+            in = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+            String line;
+            while ((line = in.readLine()) != null) {
+                uaStringList.add(line);
+            }
+        } catch (IOException e) {
+            System.out.println("There was a problem: " + e);
+            e.printStackTrace();
+        } finally {
+            try {
+                in.close();
+            } catch (Exception e) {
+            }
+        }
+        for (int i=0; i<10; i++) {
+            doTestUaTxt(uaStringList);
+        }
+    }
+
+    private static void testJson() {
         InputStream is = UdgerUaTest.class.getResourceAsStream("test_ua.json");
         JsonReader jsonReader = javax.json.Json.createReader(is);
         jsonArray = jsonReader.readArray();
         for (int i=0; i<10; i++) {
             System.out.println("### Test : " + (i+1));
             testSerial();
+        }
+    }
+
+    private static void doTestUaTxt(List<String> uaStringList) {
+        UdgerParser up = null;
+        try {
+            up = new UdgerParser("udgerdb_v3.dat");
+            up.prepare();
+            long tm = 0;
+            for (String query : uaStringList) {
+                try {
+                    long prev = System.nanoTime();
+                    UdgerUaResult ret = up.parseUa(query);
+                    tm += System.nanoTime() - prev;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            long numQueries = uaStringList.size();
+            System.out.println("TOTAL Queries: " + numQueries + " time : " + tm / 1000000 + "ms AVG : " + 1000000000 * numQueries / (float) tm + "/s");
+            up.printPerformanceData();
+        } catch (SQLException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        } finally {
+            if (up != null) {
+                try {
+                    up.close();
+                } catch (IOException e) {
+                }
+            }
         }
     }
 

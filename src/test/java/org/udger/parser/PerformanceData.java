@@ -43,7 +43,7 @@ public class PerformanceData {
         System.out.println("REGEX Count :" + regexCount);
         System.out.println("REGEX Cache size :" + regexCacheSize);
         System.out.println("Call count : " + callCount);
-        System.out.println("Find words : " + findWordsTime / (float) callCount);
+        System.out.println("Find words : " + findWordsTime / (float) callCount + "ns");
         System.out.println("SubstrChecks : " + substrCheckCount);
         System.out.println("Regex params : " + regexArrayParams);
     }
