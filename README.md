@@ -64,6 +64,11 @@ an instance pool. UdgerParser is not thread safe object, therefore it can't be u
 ### Automatic updates download
 - for autoupdate data use Udger data updater (https://udger.com/support/documentation/?doc=62)
 
+### Documentation for programmers
+- https://udger.com/pub/documentation/parser/JAVA/html/
+
+### Documentation for programmers
+- https://udger.com/pub/documentation/parser/JAVA/html/
 
 ### Author
 The Udger.com Team (info@udger.com)

@@ -15,8 +15,9 @@ public class UdgerParserTest {
     private UdgerParser parser;
 
     @Before
-    public void initialize() {
+    public void initialize() throws SQLException {
         parser = new UdgerParser("udgerdb_v3.dat");
+        parser.prepare();
     }
 
     @After
