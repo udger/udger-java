@@ -67,9 +67,6 @@ an instance pool. UdgerParser is not thread safe object, therefore it can't be u
 ### Documentation for programmers
 - https://udger.com/pub/documentation/parser/JAVA/html/
 
-### Documentation for programmers
-- https://udger.com/pub/documentation/parser/JAVA/html/
-
 ### Author
 The Udger.com Team (info@udger.com)
 
