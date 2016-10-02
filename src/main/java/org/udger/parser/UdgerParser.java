@@ -254,11 +254,11 @@ public class UdgerParser implements Closeable {
 
     private static List<IdRegString> prepareRegexpStruct(Connection connection, String regexpTableName) throws SQLException {
         List<IdRegString> ret = new ArrayList<>();
-        ResultSet rs = connection.createStatement().executeQuery("SELECT rowid2, regstring, word_id, word2_id FROM " + regexpTableName + " ORDER BY sequence");
+        ResultSet rs = connection.createStatement().executeQuery("SELECT rowid, regstring, word_id, word2_id FROM " + regexpTableName + " ORDER BY sequence");
         if (rs != null) {
             while (rs.next()) {
                 IdRegString irs = new IdRegString();
-                irs.id = rs.getInt("rowid2");
+                irs.id = rs.getInt("rowid");
                 irs.wordId1 = rs.getInt("word_id");
                 irs.wordId2 = rs.getInt("word2_id");
                 String regex = rs.getString("regstring");
