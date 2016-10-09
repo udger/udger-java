@@ -16,7 +16,7 @@ public class UdgerParserTest {
 
     @Before
     public void initialize() {
-        parser = new UdgerParser("udgerdb_v3.dat");
+        parser = new UdgerParser("udgerdb_v3.dat", 100);
     }
 
     @After

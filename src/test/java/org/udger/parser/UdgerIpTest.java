@@ -17,7 +17,7 @@ public class UdgerIpTest {
         JsonArray ja = jr.readArray();
         UdgerParser up = null;
         try {
-            up = new UdgerParser("udgerdb_v3.dat");
+            up = new UdgerParser("udgerdb_v3.dat", 100);
             for (int i=0; i < ja.size(); i++) {
                 JsonObject jar = ja.getJsonObject(i);
                 JsonObject jor = jar.getJsonObject("ret");
