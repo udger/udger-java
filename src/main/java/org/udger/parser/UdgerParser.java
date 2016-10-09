@@ -63,13 +63,32 @@ public class UdgerParser implements Closeable {
 
     private Map<String, PreparedStatement> preparedStmtMap = new HashMap<>();
 
+    private LRUCache cache;
+
+    private boolean osParserEnabled = true;
+    private boolean deviceParserEnabled = true;
+    private boolean deviceBrandParserEnabled = true;
+
+    /**
+     * Instantiates a new udger parser with LRU cache with capacity of 10.000 items
+     *
+     * @param dbFileName the udger database file name
+     */
+    public UdgerParser(String dbFileName) {
+        this(dbFileName, 10000);
+    }
+
     /**
      * Instantiates a new udger parser. Parser must be prepared by prepare() method call before it is used.
      *
-     * @param dbFileName the db file name
+     * @param dbFileName the udger database file name
+     * @param cacheCapacity the LRU cache capacity
      */
-    public UdgerParser(String dbFileName) {
+    public UdgerParser(String dbFileName, int cacheCapacity) {
         this.dbFileName = dbFileName;
+        if (cacheCapacity > 0) {
+            cache = new LRUCache(cacheCapacity);
+        }
     }
 
     /**
@@ -107,28 +126,43 @@ public class UdgerParser implements Closeable {
      */
     public UdgerUaResult parseUa(String uaString) throws SQLException {
 
-        UdgerUaResult ret = new UdgerUaResult(uaString);
+        UdgerUaResult ret;
+
+        if (cache != null) {
+            ret = cache.get(uaString);
+            if (ret != null) {
+                return ret;
+            }
+        }
+
+        ret = new UdgerUaResult(uaString);
 
         connect();
 
         ClientInfo clientInfo = clientDetector(uaString, ret);
 
-        osDetector(uaString, ret, clientInfo);
+        if (osParserEnabled) {
+            osDetector(uaString, ret, clientInfo);
+        }
 
-        deviceDetector(uaString, ret, clientInfo);
+        if (deviceParserEnabled) {
+            deviceDetector(uaString, ret, clientInfo);
+        }
 
-//        if (ret.getOsFamilyCode() != null && !ret.getOsFamilyCode().isEmpty()) {
-//            fetchDeviceBrand(uaString, ret);
-//        }
-//
+        if (deviceBrandParserEnabled) {
+            if (ret.getOsFamilyCode() != null && !ret.getOsFamilyCode().isEmpty()) {
+                fetchDeviceBrand(uaString, ret);
+            }
+        }
+
         return ret;
     }
 
     /**
-     * Parses the ip string and stores results of parsing in UdgerIpResult
+     * Parses the IP string and stores results of parsing in UdgerIpResult.
      *
-     * @param
-     * @return the intance of UdgerIpResult storing results of parsing
+     * @param ipString the IP string
+     * @return the instance of UdgerIpResult storing results of parsing
      * @throws SQLException the SQL exception
      * @throws UnknownHostException the unknown host exception
      */
@@ -192,6 +226,84 @@ public class UdgerParser implements Closeable {
         }
 
         return ret;
+    }
+
+    /**
+     * Checks if is OS parser enabled. OS parser is enabled by default
+     *
+     * @return true, if is OS parser enabled
+     */
+    public boolean isOsParserEnabled() {
+        return osParserEnabled;
+    }
+
+    /**
+     * Enable/disable the OS parser. OS parser is enabled by default. If enabled following fields
+     * of UdgerUaResult are processed by the OS parser:
+     *    <ul>
+     * 	    <li>osFamily, osFamilyCode, OS, osCode, osHomePage, osIcon, osIconBig</li>
+     * 	    <li>osFamilyVendor, osFamilyVendorCode, osFamilyVedorHomepage, osInfoUrl</li>
+     *    </ul>
+     *
+     *  If the OSs fields are not necessary then disabling this feature can increase
+     *  the parser's performance.
+     *
+     * @param clientParserEnabled
+     */
+    public void setOsParserEnabled(boolean osParserEnabled) {
+        this.osParserEnabled = osParserEnabled;
+    }
+
+    /**
+     * Checks if is device parser enabled. Device parser is enabled by default
+     *
+     * @return true, if is device parser enabled
+     */
+    public boolean isDeviceParserEnabled() {
+        return deviceParserEnabled;
+    }
+
+    /**
+     * Enable/disable the device parser. Device parser is enabled by default. If enabled following fields
+     *  of UdgerUaResult are filled by the device parser:
+     *    <ul>
+     * 	    <li>deviceClass, deviceClassCode, deviceClassIcon</li>
+     * 	    <li>deviceClassIconBig, deviceClassInfoUrl</li>
+     *    </ul>
+     *
+     *  If the DEVICEs fields are not necessary then disabling this feature can increase
+     *  the parser's performance.
+     *
+     * @param clientParserEnabled
+     */
+    public void setDeviceParserEnabled(boolean deviceParserEnabled) {
+        this.deviceParserEnabled = deviceParserEnabled;
+    }
+
+    /**
+     * Checks if is device brand parser enabled. Device brand parser is enabled by default.
+     *
+     * @return true, if is device brand parser enabled
+     */
+    public boolean isDeviceBrandParserEnabled() {
+        return deviceBrandParserEnabled;
+    }
+
+    /**
+     * Enable/disable the device brand parser. Device brand parser is enabled by default. If enabled following fields
+     *  of UdgerUaResult are filled by the device brand parser:
+     *    <ul>
+     * 	    <li>deviceMarketname, deviceBrand, deviceBrandCode, deviceBrandHomepage</li>
+     * 	    <li>deviceBrandIcon, deviceBrandIconBig, deviceBrandInfoUrl</li>
+     *    </ul>
+     *
+     *  If the BRANDs fields are not necessary then disabling this feature can increase
+     *  the parser's performance.
+     *
+     * @param clientParserEnabled
+     */
+    public void setDeviceBrandParserEnabled(boolean deviceBrandParserEnabled) {
+        this.deviceBrandParserEnabled = deviceBrandParserEnabled;
     }
 
     private static synchronized void initStaticStructures(Connection connection) throws SQLException {
@@ -501,4 +613,5 @@ public class UdgerParser implements Closeable {
         ret.setDataCenterName(nvl(rs.getString("datacenter_name")));
         ret.setDataCenterNameCode(nvl(rs.getString("datacenter_name_code")));
     }
+
 }
