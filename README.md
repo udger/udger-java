@@ -5,9 +5,14 @@ It also provides information about IP addresses (Public proxies, VPN services, T
 
 
 - Tested with more the 50.000 unique user agents.
-- Process thousands queries per second
 - Up to date data provided by https://udger.com/
 - Support for >=Java6
+
+### Performance
+Udger java parser uses LRU cache for last N requests. The size of cache can be defined in constructor, default size is 10000 requests. Parser's performance is tuned continuously, currently it reaches following rates:
+
+- >100.000 requests per second if LRU is hitted
+- 2.000 requests per second without caching
 
 ### Compile from git repo
 
