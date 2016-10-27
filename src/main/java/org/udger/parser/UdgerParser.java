@@ -155,6 +155,10 @@ public class UdgerParser implements Closeable {
             }
         }
 
+        if (cache != null) {
+            cache.put(uaString, ret);
+        }
+
         return ret;
     }
 
