@@ -63,9 +63,8 @@ public class WordDetector implements Serializable {
                 final int index = (c1 - 'a') * dimension + c2 - 'a';
                 List<WordInfo> l = wordArray[index];
                 if (l != null) {
-                    final String substr = s.substring(i);
                     for (WordInfo wi : l) {
-                        if (substr.startsWith(wi.word)) {
+                        if (s.startsWith(wi.word, i)) {
                             ret.add(wi.id);
                         }
                     }
