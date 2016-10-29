@@ -348,6 +348,7 @@ public class UdgerParser implements Closeable {
                 }
             }
         }
+        result.printMap();
         return result;
     }
 

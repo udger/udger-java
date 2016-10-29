@@ -56,9 +56,9 @@ public class UdgerPerformanceTest {
             } catch (Exception e) {
             }
         }
-//        for (int i=0; i<10; i++) {
+        for (int i=0; i<2; i++) {
             doTestUaTxt(uaStringList);
-//        }
+        }
     }
 
     private static void testJson() {
@@ -74,7 +74,7 @@ public class UdgerPerformanceTest {
     private static void doTestUaTxt(List<String> uaStringList) {
         UdgerParser up = null;
         try {
-            up = new UdgerParser("udgerdb_v3.dat", 10000);
+            up = new UdgerParser("udgerdb_v3.dat", 1);
             up.prepare();
             long tm = 0;
             for (String query : uaStringList) {
