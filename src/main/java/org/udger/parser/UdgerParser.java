@@ -28,6 +28,9 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Main parser's class handles parser requests for user agent or IP.
+ */
 public class UdgerParser implements Closeable {
 
     private static final String DB_FILENAME = "udgerdb_v3.dat";
@@ -91,16 +94,6 @@ public class UdgerParser implements Closeable {
         }
     }
 
-    /**
-     * Prepare parser. This method must be called before parser is used.
-     *
-     * @throws SQLException the SQL exception
-     */
-    public void prepare() throws SQLException {
-        connect();
-        initStaticStructures(connection);
-    }
-
     @Override
     public void close() throws IOException {
         try {
@@ -137,7 +130,7 @@ public class UdgerParser implements Closeable {
 
         ret = new UdgerUaResult(uaString);
 
-        connect();
+        prepare();
 
         ClientInfo clientInfo = clientDetector(uaString, ret);
 
@@ -193,7 +186,7 @@ public class UdgerParser implements Closeable {
 
         if (normalizedIp != null) {
 
-            connect();
+            prepare();
 
             ResultSet ipRs = getFirstRow(UdgerSqlQuery.SQL_IP, normalizedIp);
 
@@ -487,8 +480,14 @@ public class UdgerParser implements Closeable {
         return ret;
     }
 
-    private void connect() throws SQLException {
+    private void prepare() throws SQLException {
+        connect();
+        if (clientRegstringList == null) {
+            initStaticStructures(connection);
+        }
+    }
 
+    private void connect() throws SQLException {
         if (connection == null) {
             connection = DriverManager.getConnection("jdbc:sqlite:" + dbFileName);
         }

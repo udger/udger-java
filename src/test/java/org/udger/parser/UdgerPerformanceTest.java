@@ -42,7 +42,6 @@ public class UdgerPerformanceTest {
         UdgerParser up = null;
         try {
             up = new UdgerParser("udgerdb_v3.dat");
-            up.prepare();
             long tm = 0;
             for (int j=0; j<100; j++) {
                 for (int i=0; i < jsonArray.size(); i++) {
@@ -59,9 +58,6 @@ public class UdgerPerformanceTest {
             }
             long numQueries = 100 * jsonArray.size();
             System.out.println("TOTAL Queries: " + numQueries + " time : " + tm / 1000000 + "ms AVG : " + 1000000000 * numQueries / (float) tm + "/s");
-        } catch (SQLException e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
         } finally {
             if (up != null) {
                 try {

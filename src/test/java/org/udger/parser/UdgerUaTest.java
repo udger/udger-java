@@ -17,7 +17,6 @@ public class UdgerUaTest {
         UdgerParser up = null;
         try {
             up = new UdgerParser("udgerdb_v3.dat");
-            up.prepare();
             for (int i=0; i < ja.size(); i++) {
                 JsonObject jar = ja.getJsonObject(i);
                 JsonObject jor = jar.getJsonObject("ret");
@@ -32,7 +31,6 @@ public class UdgerUaTest {
                     }
                     System.out.println("Query: " + query);
 //                    System.out.println("Result: " + ReflectionToStringBuilder.toString(ret, ToStringStyle.MULTI_LINE_STYLE));
-
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }

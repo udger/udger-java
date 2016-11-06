@@ -3,6 +3,7 @@ package org.udger.parser;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.sql.SQLException;
 
@@ -16,8 +17,8 @@ public class UdgerParserTest {
 
     @Before
     public void initialize() throws SQLException {
-        parser = new UdgerParser("udgerdb_v3.dat");
-        parser.prepare();
+        URL resource = this.getClass().getClassLoader().getResource("udgerdb_test_v3.dat");
+        parser = new UdgerParser(resource.getFile());
     }
 
     @After
