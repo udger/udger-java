@@ -3,10 +3,11 @@
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.udger.parser</groupId>
-  <artifactId>udger</artifactId>
+  <artifactId>udger-parser</artifactId>
   <packaging>jar</packaging>
   <version>1.0</version>
-  <name>udger</name>
+  <name>Udger user agent and IP parser</name>
+  <description>Parse user agent string or IP using udger sqlite DB</description>
   <url>http://udger.com</url>
 
   <dependencies>

@@ -28,11 +28,11 @@ public class UdgerParserTest {
 
     @Test
     public void testUaString1() throws SQLException {
-        String uaQuery = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/534+ (KHTML, like Gecko) BingPreview/1.0b";
+        String uaQuery = "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0";
         UdgerUaResult qr = parser.parseUa(uaQuery);
-        assertEquals(qr.getUa(), "BingPreview/1.0b");
-        assertEquals(qr.getOs(), "Windows 7");
-        assertEquals(qr.getUaFamily(), "bingbot");
+        assertEquals(qr.getUa(), "Firefox 40.0");
+        assertEquals(qr.getOs(), "Windows 10");
+        assertEquals(qr.getUaFamily(), "Firefox");
     }
 
     @Test
