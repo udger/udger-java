@@ -36,13 +36,11 @@ Udger data is stored in SQLite database file. Udger-java connects to SqLite usin
 Example how to create UdgerParser from udger db file `C:\work\udgerdb_v3.dat` (in Windows)
 
     UdgerParser up = = new UdgerParser("C:/work/udgerdb_v3.dat");
-    up.prepare();
 
 
 and from a UNIX (Linux, Mac OS X, etc) udger db file `/home/john/work/udgerdb_v3.dat`
 
     UdgerParser up = = new UdgerParser("/home/john/work/udgerdb_v3.dat");
-    up.prepare();
 
 
 Since the SQLite connection creating is time consuming task, it is recommended to keep the UdgerParser's instances in
@@ -54,7 +52,6 @@ an instance pool. UdgerParser is not thread safe object, therefore it can't be u
     public class Sample {
       public static void main(String[] args) {
         try (UdgerParser up = new UdgerParser("/home/john/work/udgerdb_v3.dat")) {
-            up.prepare();
             UdgerUaResult uaRet = up.parseUa("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9");
             UdgerIpResult ipRet = up.parseIp("108.61.199.93");
         } catch (SQLException e) {
