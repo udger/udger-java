@@ -10,6 +10,28 @@
   <description>Parse user agent string or IP using udger sqlite DB</description>
   <url>http://udger.com</url>
 
+  <licenses>
+    <license>
+      <name>JAVA Udger client LICENSE</name>
+      <url>https://udger.com/legal/java_parser</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Udger Team</name>
+      <email>support@udger.com</email>
+      <organization>udger</organization>
+      <organizationUrl>http://www.udger.com</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:git@github.com:udger/udger-java.git</connection>
+    <developerConnection>scm:git:ssh://github.com:udger/udger-java.git</developerConnection>
+    <url>https://github.com/udger/udger-java</url>
+  </scm>
+
   <dependencies>
 
     <dependency>
