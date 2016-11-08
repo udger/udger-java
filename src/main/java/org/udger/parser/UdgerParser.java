@@ -245,7 +245,7 @@ public class UdgerParser implements Closeable {
      *  If the OSs fields are not necessary then disabling this feature can increase
      *  the parser's performance.
      *
-     * @param clientParserEnabled
+     * @param osParserEnabled the true if os parser is to be enabled
      */
     public void setOsParserEnabled(boolean osParserEnabled) {
         this.osParserEnabled = osParserEnabled;
@@ -254,7 +254,7 @@ public class UdgerParser implements Closeable {
     /**
      * Checks if is device parser enabled. Device parser is enabled by default
      *
-     * @return true, if is device parser enabled
+     * @return true, if device parser is enabled
      */
     public boolean isDeviceParserEnabled() {
         return deviceParserEnabled;
@@ -271,7 +271,7 @@ public class UdgerParser implements Closeable {
      *  If the DEVICEs fields are not necessary then disabling this feature can increase
      *  the parser's performance.
      *
-     * @param clientParserEnabled
+     * @param deviceParserEnabled the true if device parser is to be enabled
      */
     public void setDeviceParserEnabled(boolean deviceParserEnabled) {
         this.deviceParserEnabled = deviceParserEnabled;
@@ -280,7 +280,7 @@ public class UdgerParser implements Closeable {
     /**
      * Checks if is device brand parser enabled. Device brand parser is enabled by default.
      *
-     * @return true, if is device brand parser enabled
+     * @return true, if device brand parser is enabled
      */
     public boolean isDeviceBrandParserEnabled() {
         return deviceBrandParserEnabled;
@@ -297,7 +297,7 @@ public class UdgerParser implements Closeable {
      *  If the BRANDs fields are not necessary then disabling this feature can increase
      *  the parser's performance.
      *
-     * @param clientParserEnabled
+     * @param deviceBrandParserEnabled the true if device brand parser is to be enabled
      */
     public void setDeviceBrandParserEnabled(boolean deviceBrandParserEnabled) {
         this.deviceBrandParserEnabled = deviceBrandParserEnabled;
