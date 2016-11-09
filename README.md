@@ -46,6 +46,16 @@ and from a UNIX (Linux, Mac OS X, etc) udger db file `/home/john/work/udgerdb_v3
 Since the SQLite connection creating is time consuming task, it is recommended to keep the UdgerParser's instances in
 an instance pool. UdgerParser is not thread safe object, therefore it can't be used from multiple thread simultaneously.
 
+### Usage with maven
+
+```xml
+<dependency>
+    <groupId>org.udger.parser</groupId>
+    <artifactId>udger-parser</artifactId>
+    <version>1.0</version>
+</dependency>
+```
+
 #### Sample.java
 
 ```java
@@ -64,7 +74,7 @@ an instance pool. UdgerParser is not thread safe object, therefore it can't be u
 ```
 
 ### Automatic updates download
-- for autoupdate data use Udger data updater (https://udger.com/support/documentation/?doc=62)
+- for auto-update data use Udger data updater (https://udger.com/support/documentation/?doc=62)
 
 ### Documentation for programmers
 - https://udger.com/pub/documentation/parser/JAVA/html/
