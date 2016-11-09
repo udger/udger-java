@@ -16,18 +16,22 @@ Udger java parser uses LRU cache for last N requests. The size of cache can be d
 
 ### Compile from git repo
 
+```sh
     $ git clone https://github.com/udger/udger-java
     $ cd udger-java/
     $ maven package
+```
 
 ### Requirements
 Udger data is stored in SQLite database file. Udger-java connects to SqLite using JDBC driver. SQLiteJDBC jdbc driver is recommended. If you are using Maven2, add the following XML fragments into your pom.xml file:
 
+```xml
     <dependency>
       <groupId>org.xerial</groupId>
       <artifactId>sqlite-jdbc</artifactId>
       <version>3.8.11.2</version>
     </dependency>
+```
 
 ### Usage
 
@@ -35,13 +39,15 @@ Udger data is stored in SQLite database file. Udger-java connects to SqLite usin
 
 Example how to create UdgerParser from udger db file `C:\work\udgerdb_v3.dat` (in Windows)
 
+```java
     UdgerParser up = = new UdgerParser("C:/work/udgerdb_v3.dat");
-
+```
 
 and from a UNIX (Linux, Mac OS X, etc) udger db file `/home/john/work/udgerdb_v3.dat`
 
+```java
     UdgerParser up = = new UdgerParser("/home/john/work/udgerdb_v3.dat");
-
+```
 
 Since the SQLite connection creating is time consuming task, it is recommended to keep the UdgerParser's instances in
 an instance pool. UdgerParser is not thread safe object, therefore it can't be used from multiple thread simultaneously.
