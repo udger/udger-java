@@ -452,7 +452,7 @@ public class UdgerParser implements Closeable {
                 if (devId != null && regex != null) {
                     Pattern patRegex = getRegexFromCache(regex);
                     Matcher matcher = patRegex.matcher(uaString);
-                    if (matcher.matches()) {
+                    if (matcher.find()) {
                         ResultSet devNameListRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE_NAME_LIST, devId, matcher.group(1));
                         if (devNameListRs != null && devNameListRs.next()) {
                             ret.setDeviceMarketname(devNameListRs.getString("marketname"));
