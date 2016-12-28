@@ -86,6 +86,14 @@ public class UdgerUaTest {
         result = testEqual(jor, "device_class_info_url", ret.getDeviceClassInfoUrl()) && result;
         result = testEqual(jor, "device_class_code", ret.getDeviceClassCode()) && result;
 
+        result = testEqual(jor, "device_marketname", ret.getDeviceMarketname()) && result;
+        result = testEqual(jor, "device_brand", ret.getDeviceBrand()) && result;
+        result = testEqual(jor, "device_brand_code", ret.getDeviceBrandCode()) && result;
+        result = testEqual(jor, "device_brand_homepage", ret.getDeviceBrandHomepage()) && result;
+        result = testEqual(jor, "device_brand_icon", ret.getDeviceBrandIcon()) && result;
+        result = testEqual(jor, "device_brand_icon_big", ret.getDeviceBrandIconBig()) && result;
+        result = testEqual(jor, "device_brand_info_url", ret.getDeviceBrandInfoUrl()) && result;
+
         return result;
     }
 
