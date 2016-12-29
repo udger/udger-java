@@ -58,7 +58,7 @@ an instance pool. UdgerParser is not thread safe object, therefore it can't be u
 <dependency>
     <groupId>org.udger.parser</groupId>
     <artifactId>udger-parser</artifactId>
-    <version>1.0</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 
