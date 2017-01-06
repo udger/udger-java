@@ -361,6 +361,16 @@ public class UdgerParser implements Closeable {
         return -1;
     }
 
+    private int findIdFromListFullScan(String uaString, List<IdRegString> list) {
+        for (IdRegString irs: list) {
+            Matcher matcher = irs.pattern.matcher(uaString);
+            if (matcher.find()) {
+                lastPatternMatcher = matcher;
+                return irs.id;
+            }
+        }
+        return -1;
+    }
     private static List<IdRegString> prepareRegexpStruct(Connection connection, String regexpTableName) throws SQLException {
         List<IdRegString> ret = new ArrayList<>();
         ResultSet rs = connection.createStatement().executeQuery("SELECT rowid, regstring, word_id, word2_id FROM " + regexpTableName + " ORDER BY sequence");
@@ -425,7 +435,8 @@ public class UdgerParser implements Closeable {
     }
 
     private void deviceDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo) throws SQLException {
-        int rowid = findIdFromList(uaString, deviceWordDetector.findWords(uaString), deviceRegstringList);
+        // int rowid = findIdFromList(uaString, deviceWordDetector.findWords(uaString), deviceRegstringList);
+        int rowid = findIdFromListFullScan(uaString, deviceRegstringList);
         if (rowid != -1) {
             ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE, rowid);
             devRs.next();
