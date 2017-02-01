@@ -28,6 +28,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.sqlite.SQLiteConfig;
+
 /**
  * Main parser's class handles parser requests for user agent or IP.
  */
@@ -348,6 +350,7 @@ public class UdgerParser implements Closeable {
     }
 
     private int findIdFromList(String uaString, Set<Integer> foundClientWords, List<IdRegString> list) {
+        lastPatternMatcher = null;
         for (IdRegString irs: list) {
             if ((irs.wordId1 == 0 || foundClientWords.contains(irs.wordId1)) &&
                 (irs.wordId2 == 0 || foundClientWords.contains(irs.wordId2))) {
@@ -362,6 +365,7 @@ public class UdgerParser implements Closeable {
     }
 
     private int findIdFromListFullScan(String uaString, List<IdRegString> list) {
+        lastPatternMatcher = null;
         for (IdRegString irs: list) {
             Matcher matcher = irs.pattern.matcher(uaString);
             if (matcher.find()) {
@@ -500,7 +504,10 @@ public class UdgerParser implements Closeable {
 
     private void connect() throws SQLException {
         if (connection == null) {
-            connection = DriverManager.getConnection("jdbc:sqlite:" + dbFileName);
+            SQLiteConfig config = new SQLiteConfig();
+            config.setReadOnly(true);
+
+            connection = DriverManager.getConnection("jdbc:sqlite:" + dbFileName, config.toProperties());
         }
     }
 
