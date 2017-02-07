@@ -170,11 +170,11 @@ public class UdgerParser implements Closeable {
         UdgerIpResult ret = new UdgerIpResult(ipString);
 
         InetAddress addr = InetAddress.getByName(ipString);
-        Integer ipv4int = null;
+        Long ipv4int = null;
         String normalizedIp = null;
 
         if (addr instanceof Inet4Address) {
-            ipv4int = 0;
+            ipv4int = 0L;
             for (byte b: addr.getAddress()) {
                 ipv4int = ipv4int << 8 | (b & 0xFF);
             }
