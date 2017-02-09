@@ -14,11 +14,13 @@ import org.junit.Test;
 public class UdgerParserTest {
 
     private UdgerParser parser;
+    private UdgerParser inMemoryParser;
 
     @Before
     public void initialize() throws SQLException {
         URL resource = this.getClass().getClassLoader().getResource("udgerdb_test_v3.dat");
         parser = new UdgerParser(resource.getFile());
+        inMemoryParser = new UdgerParser(resource.getFile(), true, 0); // no cache
     }
 
     @After
@@ -42,4 +44,19 @@ public class UdgerParserTest {
         assertEquals(qr.getIpClassificationCode(), "crawler");
     }
 
+    @Test
+    public void testUaStringInMemoryParser() throws SQLException {
+        String uaQuery = "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0";
+        UdgerUaResult qr = inMemoryParser.parseUa(uaQuery);
+        assertEquals(qr.getUa(), "Firefox 40.0");
+        assertEquals(qr.getOs(), "Windows 10");
+        assertEquals(qr.getUaFamily(), "Firefox");
+    }
+
+    @Test
+    public void testIpInMemoryParser() throws SQLException, UnknownHostException {
+        String ipQuery = "108.61.199.93";
+        UdgerIpResult qr = inMemoryParser.parseIp(ipQuery);
+        assertEquals(qr.getIpClassificationCode(), "crawler");
+    }
 }
