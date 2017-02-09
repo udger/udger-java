@@ -3,11 +3,27 @@
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.udger.parser</groupId>
-  <artifactId>udger</artifactId>
-  <packaging>jar</packaging>
-  <version>1.0-SNAPSHOT</version>
-  <name>udger</name>
+  <artifactId>udger-parser</artifactId>
+  <version>1.0.4</version>
+  <name>Udger user agent and IP parser</name>
+  <description>Parse user agent string or IP using udger sqlite DB</description>
   <url>http://udger.com</url>
+
+  <licenses>
+    <license>
+      <name>JAVA Udger client LICENSE</name>
+      <url>https://udger.com/legal/java_parser</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Udger Team</name>
+      <email>support@udger.com</email>
+      <organization>udger</organization>
+      <organizationUrl>http://www.udger.com</organizationUrl>
+    </developer>
+  </developers>
 
   <dependencies>
 
@@ -20,7 +36,7 @@
     <dependency>
       <groupId>org.xerial</groupId>
       <artifactId>sqlite-jdbc</artifactId>
-      <version>3.8.11.2</version>
+      <version>3.16.1</version>
     </dependency>
 
     <dependency>
