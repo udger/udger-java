@@ -9,6 +9,7 @@
 package org.udger.parser;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -19,6 +20,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -77,6 +79,7 @@ public class UdgerParser implements Closeable {
     private boolean osParserEnabled = true;
     private boolean deviceParserEnabled = true;
     private boolean deviceBrandParserEnabled = true;
+    private boolean inMemoryEnabled = false;
 
     /**
      * Instantiates a new udger parser with LRU cache with capacity of 10.000 items
@@ -100,6 +103,17 @@ public class UdgerParser implements Closeable {
         }
     }
 
+    /**
+     * Instantiates a new udger parser with a in-memory SQLite DB if inMemoryEnabled is set to true.
+     *
+     * @param dbFileName the udger database file name
+     * @param inMemoryEnabled set true to enable in memory DB
+     */
+    public UdgerParser(String dbFileName, boolean inMemoryEnabled, int cacheCapacity) {
+        this(dbFileName, cacheCapacity);
+        this.inMemoryEnabled = inMemoryEnabled;
+    }
+
     @Override
     public void close() throws IOException {
         try {
@@ -117,7 +131,10 @@ public class UdgerParser implements Closeable {
     }
 
     /**
-     * Parses the user agent string and stores results of parsing in UdgerUaResult
+     * Parses the user agent string and stores results of parsing in UdgerUaResult.
+     * If the parser was initialized to use an in memory DB, then the DB is not set to read only.
+     * This does not matter since the connection is internal to this client, as such there are
+     * no chance of external modifications.
      *
      * @param uaString the user agent string
      * @return the intance of UdgerUaResult storing results of parsing
@@ -176,11 +193,11 @@ public class UdgerParser implements Closeable {
         UdgerIpResult ret = new UdgerIpResult(ipString);
 
         InetAddress addr = InetAddress.getByName(ipString);
-        Integer ipv4int = null;
+        Long ipv4int = null;
         String normalizedIp = null;
 
         if (addr instanceof Inet4Address) {
-            ipv4int = 0;
+            ipv4int = 0L;
             for (byte b: addr.getAddress()) {
                 ipv4int = ipv4int << 8 | (b & 0xFF);
             }
@@ -594,8 +611,19 @@ public class UdgerParser implements Closeable {
         if (connection == null) {
             SQLiteConfig config = new SQLiteConfig();
             config.setReadOnly(true);
-
-            connection = DriverManager.getConnection("jdbc:sqlite:" + dbFileName, config.toProperties());
+            if (inMemoryEnabled) {
+                // we cannot use read only for in memory DB since we need to populate this DB from the file.
+                connection = DriverManager.getConnection("jdbc:sqlite::memory:");
+                File dbfile = new File(dbFileName);
+                Statement statement = connection.createStatement();
+                try {
+                    statement.executeUpdate("restore from " + dbfile.getPath());
+                } catch (Exception e) {
+                    System.out.println("Error re-constructing in memory data base from Db file.");
+                }
+            } else {
+                connection = DriverManager.getConnection("jdbc:sqlite:" + dbFileName, config.toProperties());
+            }
         }
     }
 

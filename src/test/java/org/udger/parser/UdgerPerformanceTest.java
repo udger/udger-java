@@ -61,20 +61,10 @@ public class UdgerPerformanceTest {
         }
     }
 
-    private static void testJson() {
-        InputStream is = UdgerUaTest.class.getResourceAsStream("test_ua.json");
-        JsonReader jsonReader = javax.json.Json.createReader(is);
-        jsonArray = jsonReader.readArray();
-        for (int i=0; i<10; i++) {
-            System.out.println("### Test : " + (i+1));
-            testSerial();
-        }
-    }
-
     private static void doTestUaTxt(List<String> uaStringList) {
         UdgerParser up = null;
         try {
-            up = new UdgerParser("udgerdb_v3.dat", -1);
+            up = new UdgerParser("udgerdb_v3.dat", true, -1);
             long tm = 0;
             for (String query : uaStringList) {
                 try {
@@ -98,10 +88,20 @@ public class UdgerPerformanceTest {
         }
     }
 
+    private static void testJson() {
+        InputStream is = UdgerUaTest.class.getResourceAsStream("test_ua.json");
+        JsonReader jsonReader = javax.json.Json.createReader(is);
+        jsonArray = jsonReader.readArray();
+        for (int i=0; i<10; i++) {
+            System.out.println("### Test : " + (i+1));
+            testSerial();
+        }
+    }
+
     private static void testSerial() {
         UdgerParser up = null;
         try {
-            up = new UdgerParser("udgerdb_v3.dat", -1);
+            up = new UdgerParser("udgerdb_v3.dat", true, -1);
             long tm = 0;
             for (int j=0; j<100; j++) {
                 for (int i=0; i < jsonArray.size(); i++) {
