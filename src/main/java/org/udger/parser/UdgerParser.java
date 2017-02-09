@@ -129,7 +129,7 @@ public class UdgerParser implements Closeable {
     /**
      * Parses the user agent string and stores results of parsing in UdgerUaResult.
      * If the parser was initialized to use an in memory DB, then the DB is not set to read only.
-     * This does not matter since since the connection is internal to this client, as such there are
+     * This does not matter since the connection is internal to this client, as such there are
      * no chance of external modifications.
      *
      * @param uaString the user agent string
