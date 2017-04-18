@@ -130,11 +130,18 @@ public class UdgerParser implements Closeable {
         }
     }
 
+    /**
+     * Returns true if the sqlite DB connection has not been closed and is still valid.
+     *
+     * @param timeoutMillis the timeout millis
+     * @return true, if is valid
+     * @throws IOException Signals that an I/O exception has occurred.
+     */
     public boolean isValid(int timeoutMillis) throws IOException {
         try {
             return connection == null || connection.isValid(timeoutMillis);
         } catch (SQLException e) {
-            throw new IOException("Failed to validate connection within "+timeoutMillis+" millis.", e);
+            throw new IOException("Failed to validate connection within " + timeoutMillis + " millis.", e);
         }
     }
 
