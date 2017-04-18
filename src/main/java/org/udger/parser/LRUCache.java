@@ -45,6 +45,10 @@ public class LRUCache implements Serializable {
         this.capacity = capacity;
     }
 
+    public void clear(){
+        this.map.clear();
+    }
+
     public UdgerUaResult get(String uaString) {
         Node node = map.get(uaString);
         if (node != null) {
