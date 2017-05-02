@@ -21,12 +21,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -65,7 +60,7 @@ public class UdgerParser implements Closeable {
     private Connection connection;
 
     private String dbFileName = DB_FILENAME;
-    private final Map<String, Pattern> regexCache = new HashMap<>();
+    private final Map<String, Pattern> regexCache = new WeakHashMap<>();
     private Matcher lastPatternMatcher;
 
     private Map<String, PreparedStatement> preparedStmtMap = new HashMap<>();
@@ -125,6 +120,7 @@ public class UdgerParser implements Closeable {
             if(cache != null){
                 cache.clear();
             }
+            regexCache.clear();
         } catch (SQLException e) {
             throw new IOException(e.getMessage());
         }
