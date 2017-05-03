@@ -22,6 +22,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,6 +32,8 @@ import org.sqlite.SQLiteConfig;
  * Main parser's class handles parser requests for user agent or IP.
  */
 public class UdgerParser implements Closeable {
+
+    private static final Logger LOG = Logger.getLogger(UdgerParser.class.getName());
 
     private static final String DB_FILENAME = "udgerdb_v3.dat";
     private static final String UDGER_UA_DEV_BRAND_LIST_URL = "https://udger.com/resources/ua-list/devices-brand-detail?brand=";
@@ -571,7 +574,7 @@ public class UdgerParser implements Closeable {
                 try (Statement statement = connection.createStatement()) {
                     statement.executeUpdate("restore from " + dbfile.getPath());
                 } catch (Exception e) {
-                    System.out.println("Error re-constructing in memory data base from Db file.");
+                    LOG.warning("Error re-constructing in memory data base from Db file "+dbfile);
                 }
             } else {
                 connection = DriverManager.getConnection("jdbc:sqlite:" + dbFileName, config.toProperties());
