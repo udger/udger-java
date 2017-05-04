@@ -68,7 +68,7 @@ public class UdgerParser implements Closeable {
 
     private Map<String, PreparedStatement> preparedStmtMap = new HashMap<>();
 
-    private LRUCache cache;
+    private LRUCache<String, UdgerUaResult> cache;
 
     private boolean osParserEnabled = true;
     private boolean deviceParserEnabled = true;
@@ -93,7 +93,7 @@ public class UdgerParser implements Closeable {
     public UdgerParser(String dbFileName, int cacheCapacity) {
         this.dbFileName = dbFileName;
         if (cacheCapacity > 0) {
-            cache = new LRUCache(cacheCapacity);
+            cache = new LRUCache<>(cacheCapacity);
         }
     }
 

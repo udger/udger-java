@@ -1,98 +1,74 @@
 package org.udger.parser;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
+import java.lang.ref.WeakReference;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * The Class LRUCache. Simple LRU cache for UA Parser
+ * The Class LRUCache. Simple thread-safe LRU cache for UA Parser.
  */
-public class LRUCache implements Serializable {
+class LRUCache<K, V> implements Serializable {
 
     private static final long serialVersionUID = 275929298283639982L;
 
-    private static class Node implements Serializable {
-        private static final long serialVersionUID = -2815264316130381309L;
-        private Node prev;
-        private Node next;
-        private String uaString;
-        private UdgerUaResult uaResult;
-    }
+    private final ConcurrentHashMap<K, WeakReference<V>> map;
+    private final ConcurrentLinkedQueue<K> queue;
+    private final int capacity;
 
-    private Node head;
-    private Node tail;
-    private int capacity;
-
-    private final Map<String, Node> map = new HashMap<>();
-
-    public LRUCache(int capacity) {
+    LRUCache(int capacity) {
         this.capacity = capacity;
+        this.map = new ConcurrentHashMap<>(capacity);
+        this.queue = new ConcurrentLinkedQueue<>();
     }
 
-    public int getCapacity() {
-        return capacity;
-    }
-
-    public void setCapacity(int capacity) {
-        if (this.capacity > capacity) {
-            while (map.size() > capacity) {
-                assert (tail != null);
-                map.remove(tail.uaString);
-                tail = tail.prev;
-                tail.next = null;
+    V get(K key) {
+        final WeakReference<V> valueReference = map.get(key);
+        if (valueReference != null) {
+            final V value = valueReference.get();
+            queue.remove(key);
+            if (value != null) {
+                //Recently accessed, hence move it to the tail
+                queue.add(key);
+            } else {
+                map.remove(key);
             }
-        }
-        this.capacity = capacity;
-    }
-
-    public void clear(){
-        this.map.clear();
-    }
-
-    public UdgerUaResult get(String uaString) {
-        Node node = map.get(uaString);
-        if (node != null) {
-            if (head != node) {
-                if (node.next != null) {
-                    node.next.prev = node.prev;
-                } else {
-                    tail = node.prev;
-                }
-                node.prev.next = node.next;
-                head.prev = node;
-                node.next = head;
-                node.prev = null;
-                head = node;
-            }
-            return node.uaResult;
+            return value;
         }
         return null;
     }
 
-    public void put(String uaString, UdgerUaResult uaResult) {
-        Node node = map.get(uaString);
-        if (node == null) {
-            node = new Node();
-            node.uaResult = uaResult;
-            node.uaString = uaString;
-            node.next = head;
-            node.prev = null;
-            if (head != null) {
-                head.prev = node;
-            }
-            if (tail == null) {
-                tail = head;
-            }
-            head = node;
-            map.put(uaString, node);
-            if (map.size() > capacity) {
-                assert(tail != null);
-                map.remove(tail.uaString);
-                tail = tail.prev;
-                tail.next = null;
-            }
+    void put(K key, V value) {
+        if (key == null || value == null) {
+            //ConcurrentHashMap doesn't allow null key or values
+            throw new NullPointerException("Key or value must not be NULL");
         }
-        node.uaResult = uaResult;
+        if (map.containsKey(key)) {
+            queue.remove(key);
+            queue.add(key);
+        } else {
+            while (map.size() >= capacity) {
+                K lruKey = queue.poll();
+                if (lruKey != null) {
+                    map.remove(lruKey);
+                }
+            }
+            queue.add(key);
+            map.put(key, new WeakReference<>(value));
+        }
+    }
+
+    int size(){
+        return map.size();
+    }
+
+    int capacity(){
+        return capacity;
+    }
+
+    void clear() {
+        map.clear();
+        queue.clear();
     }
 
 }
