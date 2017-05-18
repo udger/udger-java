@@ -1,74 +1,99 @@
 package org.udger.parser;
 
 import java.io.Serializable;
-import java.lang.ref.WeakReference;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * The Class LRUCache. Simple thread-safe LRU cache for UA Parser.
+ * The Class LRUCache. Simple LRU cache for UA Parser
  */
-class LRUCache<K, V> implements Serializable {
+public class LRUCache<K, V> implements Serializable {
 
     private static final long serialVersionUID = 275929298283639982L;
 
-    private final ConcurrentHashMap<K, WeakReference<V>> map;
-    private final ConcurrentLinkedQueue<K> queue;
-    private final int capacity;
-
-    LRUCache(int capacity) {
-        this.capacity = capacity;
-        this.map = new ConcurrentHashMap<>(capacity);
-        this.queue = new ConcurrentLinkedQueue<>();
+    private static class Node<K, V> implements Serializable {
+        private static final long serialVersionUID = -2815264316130381309L;
+        private Node<K, V> prev;
+        private Node<K, V> next;
+        private K key;
+        private V value;
     }
 
-    V get(K key) {
-        final WeakReference<V> valueReference = map.get(key);
-        if (valueReference != null) {
-            final V value = valueReference.get();
-            queue.remove(key);
-            if (value != null) {
-                //Recently accessed, hence move it to the tail
-                queue.add(key);
-            } else {
-                map.remove(key);
+    private Node<K, V> head;
+    private Node<K, V> tail;
+    private int capacity;
+
+    private final Map<K, Node<K, V>> map = new ConcurrentHashMap<>();
+
+    public LRUCache(int capacity) {
+        this.capacity = capacity;
+    }
+
+    public int getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(int capacity) {
+        if (this.capacity > capacity) {
+            while (map.size() > capacity) {
+                assert (tail != null);
+                map.remove(tail.key);
+                tail = tail.prev;
+                tail.next = null;
             }
-            return value;
+        }
+        this.capacity = capacity;
+    }
+
+    public void clear() {
+        this.map.clear();
+    }
+
+    public V get(K uaString) {
+        Node<K, V> node = map.get(uaString);
+        if (node != null) {
+            if (head != node) {
+                if (node.next != null) {
+                    node.next.prev = node.prev;
+                } else {
+                    tail = node.prev;
+                }
+                node.prev.next = node.next;
+                head.prev = node;
+                node.next = head;
+                node.prev = null;
+                head = node;
+            }
+            return node.value;
         }
         return null;
     }
 
-    void put(K key, V value) {
-        if (key == null || value == null) {
-            //ConcurrentHashMap doesn't allow null key or values
-            throw new NullPointerException("Key or value must not be NULL");
-        }
-        if (map.containsKey(key)) {
-            queue.remove(key);
-            queue.add(key);
-        } else {
-            while (map.size() >= capacity) {
-                K lruKey = queue.poll();
-                if (lruKey != null) {
-                    map.remove(lruKey);
-                }
+    public void put(K key, V value) {
+        Node<K, V> node = map.get(key);
+        if (node == null) {
+            node = new Node<>();
+            node.value = value;
+            node.key = key;
+            node.next = head;
+            node.prev = null;
+            if (head != null) {
+                head.prev = node;
             }
-            queue.add(key);
-            map.put(key, new WeakReference<>(value));
+            if (tail == null) {
+                tail = head;
+            }
+            head = node;
+            map.put(key, node);
+            if (map.size() > capacity) {
+                assert (tail != null);
+                map.remove(tail.key);
+                tail = tail.prev;
+                tail.next = null;
+            }
         }
-    }
-
-    int size(){
-        return map.size();
-    }
-
-    int capacity(){
-        return capacity;
-    }
-
-    void clear() {
-        map.clear();
-        queue.clear();
+        node.value = value;
     }
 
 }
+
