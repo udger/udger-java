@@ -8,25 +8,22 @@
 */
 package org.udger.parser;
 
+import org.sqlite.SQLiteConfig;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.lang.ref.SoftReference;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.sqlite.SQLiteConfig;
 
 /**
  * Main parser's class handles parser requests for user agent or IP.
@@ -63,7 +60,7 @@ public class UdgerParser implements Closeable {
     private Connection connection;
 
     private String dbFileName = DB_FILENAME;
-    private final Map<String, Pattern> regexCache = new WeakHashMap<>();
+    private final Map<String, SoftReference<Pattern>> regexCache = new ConcurrentHashMap<>();
     private Matcher lastPatternMatcher;
 
     private Map<String, PreparedStatement> preparedStmtMap = new HashMap<>();
@@ -87,7 +84,7 @@ public class UdgerParser implements Closeable {
     /**
      * Instantiates a new udger parser. Parser must be prepared by prepare() method call before it is used.
      *
-     * @param dbFileName the udger database file name
+     * @param dbFileName    the udger database file name
      * @param cacheCapacity the LRU cache capacity
      */
     public UdgerParser(String dbFileName, int cacheCapacity) {
@@ -100,9 +97,9 @@ public class UdgerParser implements Closeable {
     /**
      * Instantiates a new udger parser with a in-memory SQLite DB if inMemoryEnabled is set to true.
      *
-     * @param dbFileName the udger database file name
+     * @param dbFileName      the udger database file name
      * @param inMemoryEnabled set true to enable in memory DB
-     * @param cacheCapacity the LRU cache capacity
+     * @param cacheCapacity   the LRU cache capacity
      */
     public UdgerParser(String dbFileName, boolean inMemoryEnabled, int cacheCapacity) {
         this(dbFileName, cacheCapacity);
@@ -112,7 +109,7 @@ public class UdgerParser implements Closeable {
     @Override
     public void close() throws IOException {
         try {
-            for (PreparedStatement preparedStmt: preparedStmtMap.values()) {
+            for (PreparedStatement preparedStmt : preparedStmtMap.values()) {
                 preparedStmt.close();
             }
             preparedStmtMap.clear();
@@ -120,7 +117,7 @@ public class UdgerParser implements Closeable {
                 connection.close();
                 connection = null;
             }
-            if(cache != null){
+            if (cache != null) {
                 cache.clear();
             }
             regexCache.clear();
@@ -197,7 +194,7 @@ public class UdgerParser implements Closeable {
      *
      * @param ipString the IP string
      * @return the instance of UdgerIpResult storing results of parsing
-     * @throws SQLException the SQL exception
+     * @throws SQLException         the SQL exception
      * @throws UnknownHostException the unknown host exception
      */
     public UdgerIpResult parseIp(String ipString) throws SQLException, UnknownHostException {
@@ -210,7 +207,7 @@ public class UdgerParser implements Closeable {
 
         if (addr instanceof Inet4Address) {
             ipv4int = 0L;
-            for (byte b: addr.getAddress()) {
+            for (byte b : addr.getAddress()) {
                 ipv4int = ipv4int << 8 | (b & 0xFF);
             }
             normalizedIp = addr.getHostAddress();
@@ -225,7 +222,7 @@ public class UdgerParser implements Closeable {
 
             prepare();
 
-            try(ResultSet ipRs = getFirstRow(UdgerSqlQuery.SQL_IP, normalizedIp)){
+            try (ResultSet ipRs = getFirstRow(UdgerSqlQuery.SQL_IP, normalizedIp)) {
                 if (ipRs != null && ipRs.next()) {
                     fetchUdgerIp(ipRs, ret);
                     if (!ID_CRAWLER.equals(ret.getIpClassificationCode())) {
@@ -250,7 +247,7 @@ public class UdgerParser implements Closeable {
                         ipArray[5], ipArray[5],
                         ipArray[6], ipArray[6],
                         ipArray[7], ipArray[7]
-                        );
+                );
                 fetchDataCenterAndCloseRs(dataCenterRs, ret);
             }
         }
@@ -282,13 +279,13 @@ public class UdgerParser implements Closeable {
     /**
      * Enable/disable the OS parser. OS parser is enabled by default. If enabled following fields
      * of UdgerUaResult are processed by the OS parser:
-     *    <ul>
-     * 	    <li>osFamily, osFamilyCode, OS, osCode, osHomePage, osIcon, osIconBig</li>
-     * 	    <li>osFamilyVendor, osFamilyVendorCode, osFamilyVedorHomepage, osInfoUrl</li>
-     *    </ul>
-     *
-     *  If the OSs fields are not necessary then disabling this feature can increase
-     *  the parser's performance.
+     * <ul>
+     * <li>osFamily, osFamilyCode, OS, osCode, osHomePage, osIcon, osIconBig</li>
+     * <li>osFamilyVendor, osFamilyVendorCode, osFamilyVedorHomepage, osInfoUrl</li>
+     * </ul>
+     * <p>
+     * If the OSs fields are not necessary then disabling this feature can increase
+     * the parser's performance.
      *
      * @param osParserEnabled the true if os parser is to be enabled
      */
@@ -307,14 +304,14 @@ public class UdgerParser implements Closeable {
 
     /**
      * Enable/disable the device parser. Device parser is enabled by default. If enabled following fields
-     *  of UdgerUaResult are filled by the device parser:
-     *    <ul>
-     * 	    <li>deviceClass, deviceClassCode, deviceClassIcon</li>
-     * 	    <li>deviceClassIconBig, deviceClassInfoUrl</li>
-     *    </ul>
-     *
-     *  If the DEVICEs fields are not necessary then disabling this feature can increase
-     *  the parser's performance.
+     * of UdgerUaResult are filled by the device parser:
+     * <ul>
+     * <li>deviceClass, deviceClassCode, deviceClassIcon</li>
+     * <li>deviceClassIconBig, deviceClassInfoUrl</li>
+     * </ul>
+     * <p>
+     * If the DEVICEs fields are not necessary then disabling this feature can increase
+     * the parser's performance.
      *
      * @param deviceParserEnabled the true if device parser is to be enabled
      */
@@ -333,14 +330,14 @@ public class UdgerParser implements Closeable {
 
     /**
      * Enable/disable the device brand parser. Device brand parser is enabled by default. If enabled following fields
-     *  of UdgerUaResult are filled by the device brand parser:
-     *    <ul>
-     * 	    <li>deviceMarketname, deviceBrand, deviceBrandCode, deviceBrandHomepage</li>
-     * 	    <li>deviceBrandIcon, deviceBrandIconBig, deviceBrandInfoUrl</li>
-     *    </ul>
-     *
-     *  If the BRANDs fields are not necessary then disabling this feature can increase
-     *  the parser's performance.
+     * of UdgerUaResult are filled by the device brand parser:
+     * <ul>
+     * <li>deviceMarketname, deviceBrand, deviceBrandCode, deviceBrandHomepage</li>
+     * <li>deviceBrandIcon, deviceBrandIconBig, deviceBrandInfoUrl</li>
+     * </ul>
+     * <p>
+     * If the BRANDs fields are not necessary then disabling this feature can increase
+     * the parser's performance.
      *
      * @param deviceBrandParserEnabled the true if device brand parser is to be enabled
      */
@@ -370,8 +367,8 @@ public class UdgerParser implements Closeable {
 
         WordDetector result = new WordDetector();
 
-        try(final Statement statement = connection.createStatement();
-            final ResultSet rs = statement.executeQuery("SELECT * FROM " + wordTableName)){
+        try (final Statement statement = connection.createStatement();
+             final ResultSet rs = statement.executeQuery("SELECT * FROM " + wordTableName)) {
             if (rs != null) {
                 while (rs.next()) {
                     int id = rs.getInt("id");
@@ -398,9 +395,9 @@ public class UdgerParser implements Closeable {
 
     private int findIdFromList(String uaString, Set<Integer> foundClientWords, List<IdRegString> list) {
         lastPatternMatcher = null;
-        for (IdRegString irs: list) {
+        for (IdRegString irs : list) {
             if ((irs.wordId1 == 0 || foundClientWords.contains(irs.wordId1)) &&
-                (irs.wordId2 == 0 || foundClientWords.contains(irs.wordId2))) {
+                    (irs.wordId2 == 0 || foundClientWords.contains(irs.wordId2))) {
                 Matcher matcher = irs.pattern.matcher(uaString);
                 if (matcher.find()) {
                     lastPatternMatcher = matcher;
@@ -413,7 +410,7 @@ public class UdgerParser implements Closeable {
 
     private int findIdFromListFullScan(String uaString, List<IdRegString> list) {
         lastPatternMatcher = null;
-        for (IdRegString irs: list) {
+        for (IdRegString irs : list) {
             Matcher matcher = irs.pattern.matcher(uaString);
             if (matcher.find()) {
                 lastPatternMatcher = matcher;
@@ -422,6 +419,7 @@ public class UdgerParser implements Closeable {
         }
         return -1;
     }
+
     private static List<IdRegString> prepareRegexpStruct(Connection connection, String regexpTableName) throws SQLException {
         List<IdRegString> ret = new ArrayList<>();
         try (Statement statement = connection.createStatement();
@@ -455,8 +453,8 @@ public class UdgerParser implements Closeable {
             } else {
                 int rowid = findIdFromList(uaString, clientWordDetector.findWords(uaString), clientRegstringList);
                 if (rowid != -1) {
-                    try(ResultSet userAgentRs2 =  getFirstRow(UdgerSqlQuery.SQL_CLIENT, rowid)){
-                        if (userAgentRs2 != null && userAgentRs2.next()){
+                    try (ResultSet userAgentRs2 = getFirstRow(UdgerSqlQuery.SQL_CLIENT, rowid)) {
+                        if (userAgentRs2 != null && userAgentRs2.next()) {
                             fetchUserAgent(userAgentRs2, ret);
                             clientInfo.classId = ret.getClassId();
                             clientInfo.clientId = ret.getClientId();
@@ -475,14 +473,14 @@ public class UdgerParser implements Closeable {
     private void osDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo) throws SQLException {
         int rowid = findIdFromList(uaString, osWordDetector.findWords(uaString), osRegstringList);
         if (rowid != -1) {
-            try(ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_OS, rowid)){
-                if (opSysRs != null && opSysRs.next()){
+            try (ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_OS, rowid)) {
+                if (opSysRs != null && opSysRs.next()) {
                     fetchOperatingSystem(opSysRs, ret);
                 }
             }
         } else {
             if (clientInfo.clientId != null && clientInfo.clientId != 0) {
-                try(ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_CLIENT_OS, clientInfo.clientId.toString())){
+                try (ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_CLIENT_OS, clientInfo.clientId.toString())) {
                     if (opSysRs != null && opSysRs.next()) {
                         fetchOperatingSystem(opSysRs, ret);
                     }
@@ -494,14 +492,14 @@ public class UdgerParser implements Closeable {
     private void deviceDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo) throws SQLException {
         int rowid = findIdFromListFullScan(uaString, deviceRegstringList);
         if (rowid != -1) {
-            try(ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE, rowid)){
-                if (devRs != null && devRs.next()){
+            try (ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE, rowid)) {
+                if (devRs != null && devRs.next()) {
                     fetchDevice(devRs, ret);
                 }
             }
         } else {
             if (clientInfo.classId != null && clientInfo.classId != -1) {
-                try(ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_CLIENT_CLASS, clientInfo.classId.toString())){
+                try (ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_CLIENT_CLASS, clientInfo.classId.toString())) {
                     if (devRs != null && devRs.next()) {
                         fetchDevice(devRs, ret);
                     }
@@ -518,7 +516,7 @@ public class UdgerParser implements Closeable {
         }
         preparedStatement.setObject(1, ret.getOsFamilyCode());
         preparedStatement.setObject(2, ret.getOsCode());
-        try(ResultSet devRegexRs  = preparedStatement.executeQuery()) {
+        try (ResultSet devRegexRs = preparedStatement.executeQuery()) {
             if (devRegexRs != null) {
                 while (devRegexRs.next()) {
                     String devId = devRegexRs.getString("id");
@@ -527,7 +525,7 @@ public class UdgerParser implements Closeable {
                         Pattern patRegex = getRegexFromCache(regex);
                         Matcher matcher = patRegex.matcher(uaString);
                         if (matcher.find()) {
-                            try(ResultSet devNameListRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE_NAME_LIST, devId, matcher.group(1))){
+                            try (ResultSet devNameListRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE_NAME_LIST, devId, matcher.group(1))) {
                                 if (devNameListRs != null && devNameListRs.next()) {
                                     ret.setDeviceMarketname(devNameListRs.getString("marketname"));
                                     ret.setDeviceBrand(devNameListRs.getString("brand"));
@@ -550,8 +548,8 @@ public class UdgerParser implements Closeable {
     private int[] ip6ToArray(Inet6Address addr) {
         int ret[] = new int[8];
         byte[] bytes = addr.getAddress();
-        for (int i=0; i < 8; i++) {
-            ret[i] = ((bytes [i*2] << 8 ) & 0xff00 )| (bytes[i*2+1] & 0xff);
+        for (int i = 0; i < 8; i++) {
+            ret[i] = ((bytes[i * 2] << 8) & 0xff00) | (bytes[i * 2 + 1] & 0xff);
         }
         return ret;
     }
@@ -574,7 +572,7 @@ public class UdgerParser implements Closeable {
                 try (Statement statement = connection.createStatement()) {
                     statement.executeUpdate("restore from " + dbfile.getPath());
                 } catch (Exception e) {
-                    LOG.warning("Error re-constructing in memory data base from Db file "+dbfile);
+                    LOG.warning("Error re-constructing in memory data base from Db file " + dbfile);
                 }
             } else {
                 connection = DriverManager.getConnection("jdbc:sqlite:" + dbFileName, config.toProperties());
@@ -583,25 +581,25 @@ public class UdgerParser implements Closeable {
     }
 
     private Pattern getRegexFromCache(String regex) {
-        Pattern patRegex = regexCache.get(regex);
-        if (patRegex == null) {
+        SoftReference<Pattern> patRegex = regexCache.get(regex);
+        if (patRegex == null || patRegex.get() == null) {
             Matcher m = PAT_UNPERLIZE.matcher(regex);
             if (m.matches()) {
                 regex = m.group(1);
             }
-            patRegex = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+            patRegex = new SoftReference<>(Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL));
             regexCache.put(regex, patRegex);
         }
-        return patRegex;
+        return patRegex.get();
     }
 
-    private ResultSet getFirstRow(String query, Object ... params) throws SQLException {
+    private ResultSet getFirstRow(String query, Object... params) throws SQLException {
         PreparedStatement preparedStatement = preparedStmtMap.get(query);
         if (preparedStatement == null) {
             preparedStatement = connection.prepareStatement(query);
             preparedStmtMap.put(query, preparedStatement);
         }
-        for (int i=0; i < params.length; i++) {
+        for (int i = 0; i < params.length; i++) {
             preparedStatement.setObject(i + 1, params[i]);
         }
         preparedStatement.setMaxRows(1);
@@ -659,8 +657,8 @@ public class UdgerParser implements Closeable {
     private void patchVersions(UdgerUaResult ret) {
         if (lastPatternMatcher != null) {
             String version = "";
-            if (lastPatternMatcher.groupCount()>=1) {
-               version = lastPatternMatcher.group(1);
+            if (lastPatternMatcher.groupCount() >= 1) {
+                version = lastPatternMatcher.group(1);
             }
             ret.setUaVersion(version);
             ret.setUaVersionMajor(version.split("\\.")[0]);
