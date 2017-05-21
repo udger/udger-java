@@ -1,8 +1,8 @@
 package org.udger.parser;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The Class LRUCache. Simple LRU cache for UA Parser
@@ -23,7 +23,7 @@ public class LRUCache<K, V> implements Serializable {
     private Node<K, V> tail;
     private int capacity;
 
-    private final Map<K, Node<K, V>> map = new ConcurrentHashMap<>();
+    private final Map<K, Node<K, V>> map = new HashMap<>();
 
     public LRUCache(int capacity) {
         this.capacity = capacity;

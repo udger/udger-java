@@ -20,7 +20,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,7 +59,7 @@ public class UdgerParser implements Closeable {
     private Connection connection;
 
     private String dbFileName = DB_FILENAME;
-    private final Map<String, SoftReference<Pattern>> regexCache = new ConcurrentHashMap<>();
+    private final Map<String, SoftReference<Pattern>> regexCache = new HashMap<>();
     private Matcher lastPatternMatcher;
 
     private Map<String, PreparedStatement> preparedStmtMap = new HashMap<>();
