@@ -658,6 +658,9 @@ public class UdgerParser implements Closeable {
             String version = "";
             if (lastPatternMatcher.groupCount() >= 1) {
                 version = lastPatternMatcher.group(1);
+                if (version == null) {
+                    version = "";
+                }
             }
             ret.setUaVersion(version);
             ret.setUaVersionMajor(version.split("\\.")[0]);
