@@ -43,25 +43,33 @@ Example how to create UdgerParser from udger db file `C:\work\udgerdb_v3.dat` (i
 
 ```java
     UdgerParser up = = new UdgerParser("C:/work/udgerdb_v3.dat");
+    ...
+    up.close();
 ```
 
 and from a UNIX (Linux, Mac OS X, etc) udger db file `/home/john/work/udgerdb_v3.dat`
 
 ```java
     UdgerParser up = = new UdgerParser("/home/john/work/udgerdb_v3.dat");
+    ...
+    up.close();
 ```
+
+UdgerParser implements Closeable interface, therefore it must be either opened in `try (...)` statement or explicitly closed.
 Since the SQLite connection creating is time consuming task, it is recommended to keep the UdgerParser's instances in
 an instance pool. UdgerParser is not thread safe object, therefore it can't be used from multiple thread simultaneously.
 
 #### How to make use of In Memory feature
 
-The Udger client now supports the SQLite DB transactions with the database being in memory. Enabling this feature will make the parser even faster to parse the user agents. Internally the client will re-create the Udger SQLite database from the file into the systems main memory and perform all transactions to it. Since this will require additional memory for operation, it needs to be used carefully with object pools. During pooling with multiple parsers in the pool, this feature will create a separate in memory DB for each new parser and have a single connection to it. This will further allow more concurrency since all connections (from all pooled parsers) now have their own copy of the database.
+The Udger client supports the SQLite DB transactions with the database being in memory. Enabling this feature will make the parser even faster to parse the user agents. Internally the client will re-create the Udger SQLite database from the file into the systems main memory and perform all transactions to it. Since this will require additional memory for operation, it needs to be used carefully with object pools. During pooling with multiple parsers in the pool, this feature will create a separate in memory DB for each new parser and have a single connection to it. This will further allow more concurrency since all connections (from all pooled parsers) now have their own copy of the database.
 To enable in memory feature simply use the below constructor and pass inMemoryEnabled as `true`. The internal LRU cache can be used by setting a size > 0 or disabled by passing 0 for the third argument.
 
 Example:
 
 ```java
     UdgerParser up = = new UdgerParser("/home/john/work/udgerdb_v3.dat", true, 10000);
+    ...
+    uo.close();
 ```
 
 ### Usage with maven
