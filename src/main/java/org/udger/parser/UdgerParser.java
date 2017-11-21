@@ -8,8 +8,6 @@
 */
 package org.udger.parser;
 
-import org.sqlite.SQLiteConfig;
-
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +21,8 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.sqlite.SQLiteConfig;
 
 /**
  * Main parser's class handles parser requests for user agent or IP.
@@ -48,13 +48,17 @@ public class UdgerParser implements Closeable {
         Pattern pattern;
     }
 
-    private static WordDetector clientWordDetector;
-    private static WordDetector deviceWordDetector;
-    private static WordDetector osWordDetector;
+    private static class PrecalculatedData {
+        private WordDetector clientWordDetector;
+        private WordDetector deviceWordDetector;
+        private WordDetector osWordDetector;
 
-    private static List<IdRegString> clientRegstringList;
-    private static List<IdRegString> osRegstringList;
-    private static List<IdRegString> deviceRegstringList;
+        private List<IdRegString> clientRegstringList;
+        private List<IdRegString> osRegstringList;
+        private List<IdRegString> deviceRegstringList;
+    }
+
+    private static PrecalculatedData staticPrecalcData;
 
     private Connection connection;
 
@@ -164,15 +168,16 @@ public class UdgerParser implements Closeable {
         ret = new UdgerUaResult(uaString);
 
         prepare();
+        PrecalculatedData precalcData = getPrecalcData();
 
-        ClientInfo clientInfo = clientDetector(uaString, ret);
+        ClientInfo clientInfo = clientDetector(uaString, ret, precalcData);
 
         if (osParserEnabled) {
-            osDetector(uaString, ret, clientInfo);
+            osDetector(uaString, ret, clientInfo, precalcData);
         }
 
         if (deviceParserEnabled) {
-            deviceDetector(uaString, ret, clientInfo);
+            deviceDetector(uaString, ret, clientInfo, precalcData);
         }
 
         if (deviceBrandParserEnabled) {
@@ -344,17 +349,26 @@ public class UdgerParser implements Closeable {
         this.deviceBrandParserEnabled = deviceBrandParserEnabled;
     }
 
-    private static synchronized void initStaticStructures(Connection connection) throws SQLException {
-        if (clientRegstringList == null) {
+    private static synchronized PrecalculatedData createGetPrecalculatedData(Connection connection) throws SQLException {
+        if (staticPrecalcData == null) {
+            staticPrecalcData = new PrecalculatedData();
 
-            clientRegstringList = prepareRegexpStruct(connection, "udger_client_regex");
-            osRegstringList = prepareRegexpStruct(connection, "udger_os_regex");
-            deviceRegstringList = prepareRegexpStruct(connection, "udger_deviceclass_regex");
+            staticPrecalcData.clientRegstringList = prepareRegexpStruct(connection, "udger_client_regex");
+            staticPrecalcData.osRegstringList = prepareRegexpStruct(connection, "udger_os_regex");
+            staticPrecalcData.deviceRegstringList = prepareRegexpStruct(connection, "udger_deviceclass_regex");
 
-            clientWordDetector = createWordDetector(connection, "udger_client_regex", "udger_client_regex_words");
-            deviceWordDetector = createWordDetector(connection, "udger_deviceclass_regex", "udger_deviceclass_regex_words");
-            osWordDetector = createWordDetector(connection, "udger_os_regex", "udger_os_regex_words");
+            staticPrecalcData.clientWordDetector = createWordDetector(connection, "udger_client_regex", "udger_client_regex_words");
+            staticPrecalcData.deviceWordDetector = createWordDetector(connection, "udger_deviceclass_regex", "udger_deviceclass_regex_words");
+            staticPrecalcData.osWordDetector = createWordDetector(connection, "udger_os_regex", "udger_os_regex_words");
         }
+        return staticPrecalcData;
+    }
+
+    /**
+     * Reset parser static data. It is necessary to do it when DB is changed.
+     */
+    public static synchronized void resetParser() {
+        staticPrecalcData = null;
     }
 
     private static WordDetector createWordDetector(Connection connection, String regexTableName, String wordTableName) throws SQLException {
@@ -442,7 +456,7 @@ public class UdgerParser implements Closeable {
         return ret;
     }
 
-    private ClientInfo clientDetector(String uaString, UdgerUaResult ret) throws SQLException {
+    private ClientInfo clientDetector(String uaString, UdgerUaResult ret, PrecalculatedData precalcData) throws SQLException {
         ClientInfo clientInfo = new ClientInfo();
         try (ResultSet userAgentRs1 = getFirstRow(UdgerSqlQuery.SQL_CRAWLER, uaString)) {
             if (userAgentRs1 != null && userAgentRs1.next()) {
@@ -450,7 +464,7 @@ public class UdgerParser implements Closeable {
                 clientInfo.classId = 99;
                 clientInfo.clientId = -1;
             } else {
-                int rowid = findIdFromList(uaString, clientWordDetector.findWords(uaString), clientRegstringList);
+                int rowid = findIdFromList(uaString, precalcData.clientWordDetector.findWords(uaString), precalcData.clientRegstringList);
                 if (rowid != -1) {
                     try (ResultSet userAgentRs2 = getFirstRow(UdgerSqlQuery.SQL_CLIENT, rowid)) {
                         if (userAgentRs2 != null && userAgentRs2.next()) {
@@ -469,8 +483,8 @@ public class UdgerParser implements Closeable {
         return clientInfo;
     }
 
-    private void osDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo) throws SQLException {
-        int rowid = findIdFromList(uaString, osWordDetector.findWords(uaString), osRegstringList);
+    private void osDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo, PrecalculatedData precalcData) throws SQLException {
+        int rowid = findIdFromList(uaString, precalcData.osWordDetector.findWords(uaString), precalcData.osRegstringList);
         if (rowid != -1) {
             try (ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_OS, rowid)) {
                 if (opSysRs != null && opSysRs.next()) {
@@ -488,8 +502,8 @@ public class UdgerParser implements Closeable {
         }
     }
 
-    private void deviceDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo) throws SQLException {
-        int rowid = findIdFromListFullScan(uaString, deviceRegstringList);
+    private void deviceDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo, PrecalculatedData precalcData) throws SQLException {
+        int rowid = findIdFromListFullScan(uaString, precalcData.deviceRegstringList);
         if (rowid != -1) {
             try (ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE, rowid)) {
                 if (devRs != null && devRs.next()) {
@@ -555,9 +569,14 @@ public class UdgerParser implements Closeable {
 
     private void prepare() throws SQLException {
         connect();
-        if (clientRegstringList == null) {
-            initStaticStructures(connection);
+    }
+
+    private PrecalculatedData getPrecalcData() throws SQLException {
+        PrecalculatedData result = staticPrecalcData;
+        if (result == null) {
+            result = createGetPrecalculatedData(connection);
         }
+        return result;
     }
 
     private void connect() throws SQLException {
