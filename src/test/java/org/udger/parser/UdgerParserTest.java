@@ -19,8 +19,9 @@ public class UdgerParserTest {
     @Before
     public void initialize() throws SQLException {
         URL resource = this.getClass().getClassLoader().getResource("udgerdb_test_v3.dat");
-        parser = new UdgerParser(resource.getFile());
-        inMemoryParser = new UdgerParser(resource.getFile(), true, 0); // no cache
+        UdgerParser.ParserDbData parserDbData = new UdgerParser.ParserDbData(resource.getFile());
+        parser = new UdgerParser(parserDbData);
+        inMemoryParser = new UdgerParser(parserDbData, true, 0); // no cache
     }
 
     @After

@@ -42,7 +42,8 @@ Udger data is stored in SQLite database file. Udger-java connects to SqLite usin
 Example how to create UdgerParser from udger db file `C:\work\udgerdb_v3.dat` (in Windows)
 
 ```java
-    UdgerParser up = = new UdgerParser("C:/work/udgerdb_v3.dat");
+    UdgerParser.ParserDbData parserDbData = new UdgerParser.ParserDbData("C:/work/udgerdb_v3.dat");
+    UdgerParser up = = new UdgerParser(parserDbData);
     ...
     up.close();
 ```
@@ -50,7 +51,8 @@ Example how to create UdgerParser from udger db file `C:\work\udgerdb_v3.dat` (i
 and from a UNIX (Linux, Mac OS X, etc) udger db file `/home/john/work/udgerdb_v3.dat`
 
 ```java
-    UdgerParser up = = new UdgerParser("/home/john/work/udgerdb_v3.dat");
+    UdgerParser.ParserDbData parserDbData = new UdgerParser.ParserDbData("/home/john/work/udgerdb_v3.dat");
+    UdgerParser up = = new UdgerParser(parserDbData);
     ...
     up.close();
 ```
@@ -58,6 +60,10 @@ and from a UNIX (Linux, Mac OS X, etc) udger db file `/home/john/work/udgerdb_v3
 UdgerParser implements Closeable interface, therefore it must be either opened in `try (...)` statement or explicitly closed.
 Since the SQLite connection creating is time consuming task, it is recommended to keep the UdgerParser's instances in
 an instance pool. UdgerParser is not thread safe object, therefore it can't be used from multiple thread simultaneously.
+
+Intention of class `UdgerParser.ParserDbData` is to keep precalculated DB-specific data and then improve instantiation
+of `UdgerParser`. Using `UdgerParser.ParserDbData` the Udger database can be switched in runtime.
+
 
 #### How to make use of In Memory feature
 
@@ -67,7 +73,8 @@ To enable in memory feature simply use the below constructor and pass inMemoryEn
 Example:
 
 ```java
-    UdgerParser up = = new UdgerParser("/home/john/work/udgerdb_v3.dat", true, 10000);
+    UdgerParser.ParserDbData parserDbData = new UdgerParser.ParserDbData("/home/john/work/udgerdb_v3.dat");
+    UdgerParser up = = new UdgerParser(parserDbData, true, 10000);
     ...
     uo.close();
 ```
@@ -87,7 +94,8 @@ Example:
 ```java
     public class Sample {
       public static void main(String[] args) {
-        try (UdgerParser up = new UdgerParser("/home/john/work/udgerdb_v3.dat")) {
+        UdgerParser.ParserDbData parserDbData = new UdgerParser.ParserDbData("/home/john/work/udgerdb_v3.dat");
+        try (UdgerParser up = new UdgerParser(parserDbData)) {
             UdgerUaResult uaRet = up.parseUa("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9");
             UdgerIpResult ipRet = up.parseIp("108.61.199.93");
         } catch (SQLException e) {

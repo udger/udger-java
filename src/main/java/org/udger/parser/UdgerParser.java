@@ -36,19 +36,11 @@ public class UdgerParser implements Closeable {
     private static final String ID_CRAWLER = "crawler";
     private static final Pattern PAT_UNPERLIZE = Pattern.compile("^/?(.*?)/si$");
 
-    private static class ClientInfo {
-        private Integer clientId;
-        private Integer classId;
-    }
+    /**
+     * Holds precalculated data for single DB. Intention is to have single ParserDbData associated with multiple UdgerParser(s)
+     */
+    public static class ParserDbData {
 
-    private static class IdRegString {
-        int id;
-        int wordId1;
-        int wordId2;
-        Pattern pattern;
-    }
-
-    private static class PrecalculatedData {
         private WordDetector clientWordDetector;
         private WordDetector deviceWordDetector;
         private WordDetector osWordDetector;
@@ -56,13 +48,47 @@ public class UdgerParser implements Closeable {
         private List<IdRegString> clientRegstringList;
         private List<IdRegString> osRegstringList;
         private List<IdRegString> deviceRegstringList;
+
+        private String dbFileName;
+
+        public ParserDbData(String dbFileName) {
+            this.dbFileName = dbFileName;
+        }
+
+        protected void prepare(Connection connection) throws SQLException {
+            if (clientRegstringList == null) {
+                synchronized (this) {
+                    if (clientRegstringList == null) {
+                        clientRegstringList = prepareRegexpStruct(connection, "udger_client_regex");
+                        osRegstringList = prepareRegexpStruct(connection, "udger_os_regex");
+                        deviceRegstringList = prepareRegexpStruct(connection, "udger_deviceclass_regex");
+
+                        clientWordDetector = createWordDetector(connection, "udger_client_regex", "udger_client_regex_words");
+                        deviceWordDetector = createWordDetector(connection, "udger_deviceclass_regex", "udger_deviceclass_regex_words");
+                        osWordDetector = createWordDetector(connection, "udger_os_regex", "udger_os_regex_words");
+                    }
+                }
+            }
+        }
+
     }
 
-    private static PrecalculatedData staticPrecalcData;
+    private static class ClientInfo {
+        private Integer clientId;
+        private Integer classId;
+    }
+
+    protected static class IdRegString {
+        int id;
+        int wordId1;
+        int wordId2;
+        Pattern pattern;
+    }
+
+    private ParserDbData parserDbData;
 
     private Connection connection;
 
-    private String dbFileName = DB_FILENAME;
     private final Map<String, SoftReference<Pattern>> regexCache = new HashMap<>();
     private Matcher lastPatternMatcher;
 
@@ -78,35 +104,35 @@ public class UdgerParser implements Closeable {
     /**
      * Instantiates a new udger parser with LRU cache with capacity of 10.000 items
      *
-     * @param dbFileName the udger database file name
+     * @param parserDbData the parser data associated with single DB
      */
-    public UdgerParser(String dbFileName) {
-        this(dbFileName, 10000);
+    public UdgerParser(ParserDbData parserDbData) {
+        this(parserDbData, 10000);
     }
 
     /**
-     * Instantiates a new udger parser. Parser must be prepared by prepare() method call before it is used.
+     * Instantiates a new udger parser.
      *
-     * @param dbFileName    the udger database file name
+     * @param parserDbData the parser data associated with single DB
      * @param cacheCapacity the LRU cache capacity
      */
-    public UdgerParser(String dbFileName, int cacheCapacity) {
-        this.dbFileName = dbFileName;
+    public UdgerParser(ParserDbData parserDbData, int cacheCapacity) {
+        this.parserDbData = parserDbData;
         if (cacheCapacity > 0) {
             cache = new LRUCache<>(cacheCapacity);
         }
     }
 
     /**
-     * Instantiates a new udger parser with a in-memory SQLite DB if inMemoryEnabled is set to true.
+     * Instantiates a new udger parser with LRU cache with capacity of 10.000 items
      *
-     * @param dbFileName      the udger database file name
-     * @param inMemoryEnabled set true to enable in memory DB
-     * @param cacheCapacity   the LRU cache capacity
+     * @param parserDbData the parser data associated with single DB
+     * @param inMemoryEnabled the true for in memory mode
+     * @param cacheCapacity the LRU cache capacity
      */
-    public UdgerParser(String dbFileName, boolean inMemoryEnabled, int cacheCapacity) {
-        this(dbFileName, cacheCapacity);
-        this.inMemoryEnabled = inMemoryEnabled;
+    public UdgerParser(ParserDbData parserDbData, boolean inMemoryEnabled, int cacheCapacity) {
+       this(parserDbData, cacheCapacity);
+       this.inMemoryEnabled = true;
     }
 
     @Override
@@ -168,16 +194,15 @@ public class UdgerParser implements Closeable {
         ret = new UdgerUaResult(uaString);
 
         prepare();
-        PrecalculatedData precalcData = getPrecalcData();
 
-        ClientInfo clientInfo = clientDetector(uaString, ret, precalcData);
+        ClientInfo clientInfo = clientDetector(uaString, ret);
 
         if (osParserEnabled) {
-            osDetector(uaString, ret, clientInfo, precalcData);
+            osDetector(uaString, ret, clientInfo);
         }
 
         if (deviceParserEnabled) {
-            deviceDetector(uaString, ret, clientInfo, precalcData);
+            deviceDetector(uaString, ret, clientInfo);
         }
 
         if (deviceBrandParserEnabled) {
@@ -349,28 +374,6 @@ public class UdgerParser implements Closeable {
         this.deviceBrandParserEnabled = deviceBrandParserEnabled;
     }
 
-    private static synchronized PrecalculatedData createGetPrecalculatedData(Connection connection) throws SQLException {
-        if (staticPrecalcData == null) {
-            staticPrecalcData = new PrecalculatedData();
-
-            staticPrecalcData.clientRegstringList = prepareRegexpStruct(connection, "udger_client_regex");
-            staticPrecalcData.osRegstringList = prepareRegexpStruct(connection, "udger_os_regex");
-            staticPrecalcData.deviceRegstringList = prepareRegexpStruct(connection, "udger_deviceclass_regex");
-
-            staticPrecalcData.clientWordDetector = createWordDetector(connection, "udger_client_regex", "udger_client_regex_words");
-            staticPrecalcData.deviceWordDetector = createWordDetector(connection, "udger_deviceclass_regex", "udger_deviceclass_regex_words");
-            staticPrecalcData.osWordDetector = createWordDetector(connection, "udger_os_regex", "udger_os_regex_words");
-        }
-        return staticPrecalcData;
-    }
-
-    /**
-     * Reset parser static data. It is necessary to do it when DB is changed.
-     */
-    public static synchronized void resetParser() {
-        staticPrecalcData = null;
-    }
-
     private static WordDetector createWordDetector(Connection connection, String regexTableName, String wordTableName) throws SQLException {
 
         Set<Integer> usedWords = new HashSet<>();
@@ -456,7 +459,7 @@ public class UdgerParser implements Closeable {
         return ret;
     }
 
-    private ClientInfo clientDetector(String uaString, UdgerUaResult ret, PrecalculatedData precalcData) throws SQLException {
+    private ClientInfo clientDetector(String uaString, UdgerUaResult ret) throws SQLException {
         ClientInfo clientInfo = new ClientInfo();
         try (ResultSet userAgentRs1 = getFirstRow(UdgerSqlQuery.SQL_CRAWLER, uaString)) {
             if (userAgentRs1 != null && userAgentRs1.next()) {
@@ -464,7 +467,7 @@ public class UdgerParser implements Closeable {
                 clientInfo.classId = 99;
                 clientInfo.clientId = -1;
             } else {
-                int rowid = findIdFromList(uaString, precalcData.clientWordDetector.findWords(uaString), precalcData.clientRegstringList);
+                int rowid = findIdFromList(uaString, parserDbData.clientWordDetector.findWords(uaString), parserDbData.clientRegstringList);
                 if (rowid != -1) {
                     try (ResultSet userAgentRs2 = getFirstRow(UdgerSqlQuery.SQL_CLIENT, rowid)) {
                         if (userAgentRs2 != null && userAgentRs2.next()) {
@@ -483,8 +486,8 @@ public class UdgerParser implements Closeable {
         return clientInfo;
     }
 
-    private void osDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo, PrecalculatedData precalcData) throws SQLException {
-        int rowid = findIdFromList(uaString, precalcData.osWordDetector.findWords(uaString), precalcData.osRegstringList);
+    private void osDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo) throws SQLException {
+        int rowid = findIdFromList(uaString, parserDbData.osWordDetector.findWords(uaString), parserDbData.osRegstringList);
         if (rowid != -1) {
             try (ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_OS, rowid)) {
                 if (opSysRs != null && opSysRs.next()) {
@@ -502,8 +505,8 @@ public class UdgerParser implements Closeable {
         }
     }
 
-    private void deviceDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo, PrecalculatedData precalcData) throws SQLException {
-        int rowid = findIdFromListFullScan(uaString, precalcData.deviceRegstringList);
+    private void deviceDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo) throws SQLException {
+        int rowid = findIdFromListFullScan(uaString, parserDbData.deviceRegstringList);
         if (rowid != -1) {
             try (ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE, rowid)) {
                 if (devRs != null && devRs.next()) {
@@ -569,14 +572,7 @@ public class UdgerParser implements Closeable {
 
     private void prepare() throws SQLException {
         connect();
-    }
-
-    private PrecalculatedData getPrecalcData() throws SQLException {
-        PrecalculatedData result = staticPrecalcData;
-        if (result == null) {
-            result = createGetPrecalculatedData(connection);
-        }
-        return result;
+        parserDbData.prepare(connection);
     }
 
     private void connect() throws SQLException {
@@ -586,14 +582,14 @@ public class UdgerParser implements Closeable {
             if (inMemoryEnabled) {
                 // we cannot use read only for in memory DB since we need to populate this DB from the file.
                 connection = DriverManager.getConnection("jdbc:sqlite::memory:");
-                File dbfile = new File(dbFileName);
+                File dbfile = new File(parserDbData.dbFileName);
                 try (Statement statement = connection.createStatement()) {
                     statement.executeUpdate("restore from " + dbfile.getPath());
                 } catch (Exception e) {
                     LOG.warning("Error re-constructing in memory data base from Db file " + dbfile);
                 }
             } else {
-                connection = DriverManager.getConnection("jdbc:sqlite:" + dbFileName, config.toProperties());
+                connection = DriverManager.getConnection("jdbc:sqlite:" + parserDbData.dbFileName, config.toProperties());
             }
         }
     }
