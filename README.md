@@ -74,7 +74,7 @@ Example:
 
 ```java
     UdgerParser.ParserDbData parserDbData = new UdgerParser.ParserDbData("/home/john/work/udgerdb_v3.dat");
-    UdgerParser up = = new UdgerParser(parserDbData, true, 10000);
+    UdgerParser up = new UdgerParser(parserDbData, true, 10000);
     ...
     uo.close();
 ```
