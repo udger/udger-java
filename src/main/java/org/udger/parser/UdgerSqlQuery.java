@@ -85,7 +85,7 @@ public class UdgerSqlQuery {
             "icon_big AS os_icon_big, " +
             "vendor AS os_family_vendor, " +
             "vendor_code AS os_family_vendor_code, " +
-            "vendor_homepage AS os_family_vedor_homepage, " +
+            "vendor_homepage AS os_family_vendor_homepage, " +
             "'https://udger.com/resources/ua-list/os-detail?os=' || REPLACE(name, ' ', '%20') AS os_info_url ";
 
     public static final String SQL_OS =

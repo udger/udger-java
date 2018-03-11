@@ -69,7 +69,7 @@ public class UdgerUaTest {
         result = testEqual(jor, "crawler_category_code", ret.getCrawlerCategoryCode()) && result;
 //        result = testEqual(jor, "ua_string", ret.getUserAgent() != null ? ret.getUserAgent().get) && result;
 
-        result = testEqual(jor, "os_family_vendor_homepage", ret.getOsFamilyVedorHomepage()) && result;
+        result = testEqual(jor, "os_family_vendor_homepage", ret.getOsFamilyVendorHomepage()) && result;
         result = testEqual(jor, "os_icon_big", ret.getOsIconBig()) && result;
         result = testEqual(jor, "os_homepage", ret.getOsHomePage()) && result;
         result = testEqual(jor, "os_icon", ret.getOsIcon()) && result;

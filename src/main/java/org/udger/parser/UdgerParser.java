@@ -651,7 +651,7 @@ public class UdgerParser implements Closeable {
         ret.setOs(nvl(rs.getString("os")));
         ret.setOsCode(nvl(rs.getString("os_code")));
         ret.setOsFamilyCode(nvl(rs.getString("os_family_code")));
-        ret.setOsFamilyVedorHomepage(nvl(rs.getString("os_family_vedor_homepage")));
+        ret.setOsFamilyVendorHomepage(nvl(rs.getString("os_family_vendor_homepage")));
         ret.setOsFamilyVendor(nvl(rs.getString("os_family_vendor")));
         ret.setOsFamilyVendorCode(nvl(rs.getString("os_family_vendor_code")));
         ret.setOsHomePage(nvl(rs.getString("os_home_page")));

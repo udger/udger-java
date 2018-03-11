@@ -49,7 +49,7 @@ public class UdgerUaResult implements Serializable {
     private String osIconBig = "";
     private String osFamilyVendor = "";
     private String osFamilyVendorCode = "";
-    private String osFamilyVedorHomepage = "";
+    private String osFamilyVendorHomepage = "";
     private String osInfoUrl = "";
 
     // DEVICE
@@ -262,11 +262,11 @@ public class UdgerUaResult implements Serializable {
     public void setOsFamilyVendorCode(String osFamilyVendorCode) {
         this.osFamilyVendorCode = osFamilyVendorCode;
     }
-    public String getOsFamilyVedorHomepage() {
-        return osFamilyVedorHomepage;
+    public String getOsFamilyVendorHomepage() {
+        return osFamilyVendorHomepage;
     }
-    public void setOsFamilyVedorHomepage(String osFamilyVedorHomepage) {
-        this.osFamilyVedorHomepage = osFamilyVedorHomepage;
+    public void setOsFamilyVendorHomepage(String osFamilyVendorHomepage) {
+        this.osFamilyVendorHomepage = osFamilyVendorHomepage;
     }
     public String getOsInfoUrl() {
         return osInfoUrl;
@@ -388,7 +388,7 @@ public class UdgerUaResult implements Serializable {
         result = prime * result + ((osCode == null) ? 0 : osCode.hashCode());
         result = prime * result + ((osFamily == null) ? 0 : osFamily.hashCode());
         result = prime * result + ((osFamilyCode == null) ? 0 : osFamilyCode.hashCode());
-        result = prime * result + ((osFamilyVedorHomepage == null) ? 0 : osFamilyVedorHomepage.hashCode());
+        result = prime * result + ((osFamilyVendorHomepage == null) ? 0 : osFamilyVendorHomepage.hashCode());
         result = prime * result + ((osFamilyVendor == null) ? 0 : osFamilyVendor.hashCode());
         result = prime * result + ((osFamilyVendorCode == null) ? 0 : osFamilyVendorCode.hashCode());
         result = prime * result + ((osHomePage == null) ? 0 : osHomePage.hashCode());
@@ -534,10 +534,10 @@ public class UdgerUaResult implements Serializable {
                 return false;
         } else if (!osFamilyCode.equals(other.osFamilyCode))
             return false;
-        if (osFamilyVedorHomepage == null) {
-            if (other.osFamilyVedorHomepage != null)
+        if (osFamilyVendorHomepage == null) {
+            if (other.osFamilyVendorHomepage != null)
                 return false;
-        } else if (!osFamilyVedorHomepage.equals(other.osFamilyVedorHomepage))
+        } else if (!osFamilyVendorHomepage.equals(other.osFamilyVendorHomepage))
             return false;
         if (osFamilyVendor == null) {
             if (other.osFamilyVendor != null)
@@ -692,7 +692,7 @@ public class UdgerUaResult implements Serializable {
                 ", osIconBig=" + osIconBig +
                 ", osFamilyVendor=" + osFamilyVendor +
                 ", osFamilyVendorCode=" + osFamilyVendorCode +
-                ", osFamilyVedorHomepage=" + osFamilyVedorHomepage +
+                ", osFamilyVendorHomepage=" + osFamilyVendorHomepage +
                 ", osInfoUrl=" + osInfoUrl +
                 ", deviceClass=" + deviceClass +
                 ", deviceClassCode=" + deviceClassCode +
