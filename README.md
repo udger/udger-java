@@ -85,7 +85,7 @@ Example:
 <dependency>
     <groupId>org.udger.parser</groupId>
     <artifactId>udger-parser</artifactId>
-    <version>1.0.5</version>
+    <version>1.1.1</version>
 </dependency>
 ```
 
