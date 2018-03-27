@@ -10,13 +10,14 @@ import javax.json.JsonReader;
 
 public class UdgerUaTest {
 
-    public static void main(String args[]) {
+    public static void main(String args[]) throws SQLException {
         InputStream is = UdgerUaTest.class.getResourceAsStream("test_ua.json");
         JsonReader jr = javax.json.Json.createReader(is);
         JsonArray ja = jr.readArray();
         UdgerParser up = null;
         try {
-            up = new UdgerParser("udgerdb_v3.dat", 100);
+            UdgerParser.ParserDbData parserDbData = new UdgerParser.ParserDbData("udgerdb_v3.dat");
+            up = new UdgerParser(parserDbData);
             for (int i=0; i < ja.size(); i++) {
                 JsonObject jar = ja.getJsonObject(i);
                 JsonObject jor = jar.getJsonObject("ret");
@@ -31,7 +32,6 @@ public class UdgerUaTest {
                     }
                     System.out.println("Query: " + query);
 //                    System.out.println("Result: " + ReflectionToStringBuilder.toString(ret, ToStringStyle.MULTI_LINE_STYLE));
-
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
@@ -69,7 +69,7 @@ public class UdgerUaTest {
         result = testEqual(jor, "crawler_category_code", ret.getCrawlerCategoryCode()) && result;
 //        result = testEqual(jor, "ua_string", ret.getUserAgent() != null ? ret.getUserAgent().get) && result;
 
-        result = testEqual(jor, "os_family_vendor_homepage", ret.getOsFamilyVedorHomepage()) && result;
+        result = testEqual(jor, "os_family_vendor_homepage", ret.getOsFamilyVendorHomepage()) && result;
         result = testEqual(jor, "os_icon_big", ret.getOsIconBig()) && result;
         result = testEqual(jor, "os_homepage", ret.getOsHomePage()) && result;
         result = testEqual(jor, "os_icon", ret.getOsIcon()) && result;
@@ -86,6 +86,14 @@ public class UdgerUaTest {
         result = testEqual(jor, "device_class_icon", ret.getDeviceClassIcon()) && result;
         result = testEqual(jor, "device_class_info_url", ret.getDeviceClassInfoUrl()) && result;
         result = testEqual(jor, "device_class_code", ret.getDeviceClassCode()) && result;
+
+        result = testEqual(jor, "device_marketname", ret.getDeviceMarketname()) && result;
+        result = testEqual(jor, "device_brand", ret.getDeviceBrand()) && result;
+        result = testEqual(jor, "device_brand_code", ret.getDeviceBrandCode()) && result;
+        result = testEqual(jor, "device_brand_homepage", ret.getDeviceBrandHomepage()) && result;
+        result = testEqual(jor, "device_brand_icon", ret.getDeviceBrandIcon()) && result;
+        result = testEqual(jor, "device_brand_icon_big", ret.getDeviceBrandIconBig()) && result;
+        result = testEqual(jor, "device_brand_info_url", ret.getDeviceBrandInfoUrl()) && result;
 
         return result;
     }

@@ -20,7 +20,7 @@ public class UdgerPerformanceTest {
     private static void createPool() {
         POOL = new UdgerParser[10];
         for (int i=0; i<=9; i++) {
-            POOL[i] = new UdgerParser("udgerdb_v3_" + i + ".dat", -1);
+            POOL[i] = new UdgerParser(new UdgerParser.ParserDbData("udgerdb_v3_" + i + ".dat"), -1);
         }
     }
 
@@ -37,7 +37,7 @@ public class UdgerPerformanceTest {
     }
 
     private static void testUaTxt() {
-        InputStream is = UdgerUaTest.class.getResourceAsStream("ua.txt");
+        InputStream is = UdgerUaTest.class.getResourceAsStream("random_ua.txt");
 
         List<String> uaStringList = new ArrayList<>();
         BufferedReader in = null;
@@ -64,8 +64,10 @@ public class UdgerPerformanceTest {
     private static void doTestUaTxt(List<String> uaStringList) {
         UdgerParser up = null;
         try {
-            up = new UdgerParser("udgerdb_v3.dat", true, -1);
+            up = new UdgerParser(new UdgerParser.ParserDbData("/home/lada/Download/udgerdb_v3.dat"), -1);
             long tm = 0;
+            long tmPrev = 0;
+            int x = 0;
             for (String query : uaStringList) {
                 try {
                     long prev = System.nanoTime();
@@ -74,10 +76,18 @@ public class UdgerPerformanceTest {
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
+                x ++;
+                if (x % 10000 == 0) {
+                    up.printPerformanceData();
+                    up.clearPerformanceData();
+                    long t = tm - tmPrev;
+                    System.out.println("TOTAL Queries: " + 10000 + " time : " + t / 1000000 + "ms AVG : " + 1000000000 * 10000.0 / t + "/s");
+                    tmPrev = tm;
+                }
             }
-            long numQueries = uaStringList.size();
-            System.out.println("TOTAL Queries: " + numQueries + " time : " + tm / 1000000 + "ms AVG : " + 1000000000 * numQueries / (float) tm + "/s");
-            up.printPerformanceData();
+//            long numQueries = uaStringList.size();
+//            System.out.println("TOTAL Queries: " + numQueries + " time : " + tm / 1000000 + "ms AVG : " + 1000000000 * numQueries / (float) tm + "/s");
+//            up.printPerformanceData();
         } finally {
             if (up != null) {
                 try {
@@ -101,7 +111,7 @@ public class UdgerPerformanceTest {
     private static void testSerial() {
         UdgerParser up = null;
         try {
-            up = new UdgerParser("udgerdb_v3.dat", true, -1);
+            up = new UdgerParser(new UdgerParser.ParserDbData("/home/lada/Download/udgerdb_v3.dat"), -1);
             long tm = 0;
             for (int j=0; j<100; j++) {
                 for (int i=0; i < jsonArray.size(); i++) {

@@ -7,23 +7,23 @@ import java.util.Map;
 /**
  * The Class LRUCache. Simple LRU cache for UA Parser
  */
-public class LRUCache implements Serializable {
+public class LRUCache<K, V> implements Serializable {
 
     private static final long serialVersionUID = 275929298283639982L;
 
-    private static class Node implements Serializable {
+    private static class Node<K, V> implements Serializable {
         private static final long serialVersionUID = -2815264316130381309L;
-        private Node prev;
-        private Node next;
-        private String uaString;
-        private UdgerUaResult uaResult;
+        private Node<K, V> prev;
+        private Node<K, V> next;
+        private K key;
+        private V value;
     }
 
-    private Node head;
-    private Node tail;
+    private Node<K, V> head;
+    private Node<K, V> tail;
     private int capacity;
 
-    private final Map<String, Node> map = new HashMap<>();
+    private final Map<K, Node<K, V>> map = new HashMap<>();
 
     public LRUCache(int capacity) {
         this.capacity = capacity;
@@ -37,7 +37,7 @@ public class LRUCache implements Serializable {
         if (this.capacity > capacity) {
             while (map.size() > capacity) {
                 assert (tail != null);
-                map.remove(tail.uaString);
+                map.remove(tail.key);
                 tail = tail.prev;
                 tail.next = null;
             }
@@ -45,8 +45,12 @@ public class LRUCache implements Serializable {
         this.capacity = capacity;
     }
 
-    public UdgerUaResult get(String uaString) {
-        Node node = map.get(uaString);
+    public void clear() {
+        this.map.clear();
+    }
+
+    public V get(K uaString) {
+        Node<K, V> node = map.get(uaString);
         if (node != null) {
             if (head != node) {
                 if (node.next != null) {
@@ -60,17 +64,17 @@ public class LRUCache implements Serializable {
                 node.prev = null;
                 head = node;
             }
-            return node.uaResult;
+            return node.value;
         }
         return null;
     }
 
-    public void put(String uaString, UdgerUaResult uaResult) {
-        Node node = map.get(uaString);
+    public void put(K key, V value) {
+        Node<K, V> node = map.get(key);
         if (node == null) {
-            node = new Node();
-            node.uaResult = uaResult;
-            node.uaString = uaString;
+            node = new Node<>();
+            node.value = value;
+            node.key = key;
             node.next = head;
             node.prev = null;
             if (head != null) {
@@ -80,15 +84,16 @@ public class LRUCache implements Serializable {
                 tail = head;
             }
             head = node;
-            map.put(uaString, node);
+            map.put(key, node);
             if (map.size() > capacity) {
-                assert(tail != null);
-                map.remove(tail.uaString);
+                assert (tail != null);
+                map.remove(tail.key);
                 tail = tail.prev;
                 tail.next = null;
             }
         }
-        node.uaResult = uaResult;
+        node.value = value;
     }
 
 }
+

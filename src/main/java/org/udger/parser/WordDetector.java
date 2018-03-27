@@ -50,22 +50,9 @@ public class WordDetector implements Serializable {
         }
     }
 
-    public void printMap() {
-        for (int i=0; i < wordArray.length; i++) {
-            List<WordInfo> wList = wordArray[i];
-            if (wList != null) {
-                System.out.print("[");
-                for (WordInfo wi : wList) {
-                    System.out.print(wi.word + ",");
-                }
-                System.out.println("]");
-            }
-        }
-    }
-
     public Set<Integer> findWords(PerformanceData perfData, String text) {
 
-        long tm1 = System.nanoTime();
+    	long tm1 = System.nanoTime();
 
         Set<Integer> ret = new HashSet<>();
 

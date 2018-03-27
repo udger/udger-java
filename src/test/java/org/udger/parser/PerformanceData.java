@@ -9,12 +9,17 @@ public class PerformanceData {
     private long findWordsTime;
     private long substrCheckCount;
     private long regexArrayParams;
+    private int regexCount;
 
     private final Map<String, Long> countMap = new HashMap<>();
     private final Map<String, Long> timeMap = new HashMap<>();
 
     public void incCallCount() {
         callCount ++;
+    }
+
+    public void incRegexCount() {
+        regexCount ++;
     }
 
     public void incSubstrChecks() {
@@ -29,7 +34,11 @@ public class PerformanceData {
         regexArrayParams += addParams;
     }
 
-    public void print(int regexCount, int regexCacheSize) {
+    public int getRegexCount() {
+        return regexCount;
+    }
+
+    public void print(int regexCacheSize) {
         long tm = 0;
         tm += printPreparedStmtTime("sqlCrawler");
         tm += printPreparedStmtTime("sqlClient");
@@ -39,6 +48,8 @@ public class PerformanceData {
         tm += printPreparedStmtTime("sqlClientClass");
         tm += printPreparedStmtTime("sqlIp");
         tm += printPreparedStmtTime("sqlDataCenter");
+        tm += printPreparedStmtTime("SqlDataCenterRange6");
+        tm += printPreparedStmtTime("sqlDeviceName");
         System.out.println("SQL total : " + tm + "ns");
         System.out.println("REGEX Count :" + regexCount);
         System.out.println("REGEX Cache size :" + regexCacheSize);
@@ -58,7 +69,7 @@ public class PerformanceData {
         double avg = 0.0;
         if (count != 0)
             avg = time / (double) count;
-        System.out.println(String.format("%.1f", avg) + "ns : " + sqlId);
+        System.out.println(String.format("%.1f", avg) + "ns /" + count + "/" + time + " : "+ sqlId);
         return time;
     }
 
@@ -71,6 +82,14 @@ public class PerformanceData {
     public void incCount(String sqlId) {
         Long count = countMap.get(sqlId);
         countMap.put(sqlId, (count != null ? count + 1 : 1));
+    }
+
+    public void clear() {
+        timeMap.clear();
+        countMap.clear();
+        findWordsTime = 0;
+        callCount = 0;
+        regexCount = 0;
     }
 
 }

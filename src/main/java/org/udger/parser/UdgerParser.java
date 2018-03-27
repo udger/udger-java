@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,44 +38,74 @@ import org.sqlite.SQLiteConfig;
  */
 public class UdgerParser implements Closeable {
 
+    private static final Logger LOG = Logger.getLogger(UdgerParser.class.getName());
+
     private static final String DB_FILENAME = "udgerdb_v3.dat";
     private static final String UDGER_UA_DEV_BRAND_LIST_URL = "https://udger.com/resources/ua-list/devices-brand-detail?brand=";
     private static final String ID_CRAWLER = "crawler";
     private static final Pattern PAT_UNPERLIZE = Pattern.compile("^/?(.*?)/si$");
+
+    /**
+     * Holds precalculated data for single DB. Intention is to have single ParserDbData associated with multiple UdgerParser(s)
+     */
+    public static class ParserDbData {
+
+        private WordDetector clientWordDetector;
+        private WordDetector deviceWordDetector;
+        private WordDetector osWordDetector;
+
+        private List<IdRegString> clientRegstringList;
+        private List<IdRegString> osRegstringList;
+        private List<IdRegString> deviceRegstringList;
+
+        private String dbFileName;
+
+        public ParserDbData(String dbFileName) {
+            this.dbFileName = dbFileName;
+        }
+
+        protected void prepare(Connection connection) throws SQLException {
+            if (clientRegstringList == null) {
+                synchronized (this) {
+                    if (clientRegstringList == null) {
+                        clientRegstringList = prepareRegexpStruct(connection, "udger_client_regex");
+                        osRegstringList = prepareRegexpStruct(connection, "udger_os_regex");
+                        deviceRegstringList = prepareRegexpStruct(connection, "udger_deviceclass_regex");
+
+                        clientWordDetector = createWordDetector(connection, "udger_client_regex", "udger_client_regex_words");
+                        deviceWordDetector = createWordDetector(connection, "udger_deviceclass_regex", "udger_deviceclass_regex_words");
+                        osWordDetector = createWordDetector(connection, "udger_os_regex", "udger_os_regex_words");
+                    }
+                }
+            }
+        }
+
+    }
 
     private static class ClientInfo {
         private Integer clientId;
         private Integer classId;
     }
 
-    private static class IdRegString {
+    protected static class IdRegString {
         int id;
         int wordId1;
         int wordId2;
         Pattern pattern;
     }
 
-    private static WordDetector clientWordDetector;
-    private static WordDetector deviceWordDetector;
-    private static WordDetector osWordDetector;
-
-    private static List<IdRegString> clientRegstringList;
-    private static List<IdRegString> osRegstringList;
-    private static List<IdRegString> deviceRegstringList;
+    private ParserDbData parserDbData;
 
     private Connection connection;
 
-    private String dbFileName = DB_FILENAME;
     private final Map<String, Pattern> regexCache = new HashMap<>();
     private Matcher lastPatternMatcher;
 
     private Map<String, PreparedStatement> preparedStmtMap = new HashMap<>();
 
-    private int regexCount;
+    private LRUCache<String, UdgerUaResult> cache;
 
     public PerformanceData perfData = new PerformanceData();
-
-    private LRUCache cache;
 
     private boolean osParserEnabled = true;
     private boolean deviceParserEnabled = true;
@@ -84,40 +115,41 @@ public class UdgerParser implements Closeable {
     /**
      * Instantiates a new udger parser with LRU cache with capacity of 10.000 items
      *
-     * @param dbFileName the udger database file name
+     * @param parserDbData the parser data associated with single DB
      */
-    public UdgerParser(String dbFileName) {
-        this(dbFileName, 10000);
+    public UdgerParser(ParserDbData parserDbData) {
+        this(parserDbData, 10000);
     }
 
     /**
-     * Instantiates a new udger parser. Parser must be prepared by prepare() method call before it is used.
+     * Instantiates a new udger parser.
      *
-     * @param dbFileName the udger database file name
+     * @param parserDbData the parser data associated with single DB
      * @param cacheCapacity the LRU cache capacity
      */
-    public UdgerParser(String dbFileName, int cacheCapacity) {
-        this.dbFileName = dbFileName;
+    public UdgerParser(ParserDbData parserDbData, int cacheCapacity) {
+        this.parserDbData = parserDbData;
         if (cacheCapacity > 0) {
-            cache = new LRUCache(cacheCapacity);
+            cache = new LRUCache<>(cacheCapacity);
         }
     }
 
     /**
-     * Instantiates a new udger parser with a in-memory SQLite DB if inMemoryEnabled is set to true.
+     * Instantiates a new udger parser with LRU cache with capacity of 10.000 items
      *
-     * @param dbFileName the udger database file name
-     * @param inMemoryEnabled set true to enable in memory DB
+     * @param parserDbData the parser data associated with single DB
+     * @param inMemoryEnabled the true for in memory mode
+     * @param cacheCapacity the LRU cache capacity
      */
-    public UdgerParser(String dbFileName, boolean inMemoryEnabled, int cacheCapacity) {
-        this(dbFileName, cacheCapacity);
-        this.inMemoryEnabled = inMemoryEnabled;
+    public UdgerParser(ParserDbData parserDbData, boolean inMemoryEnabled, int cacheCapacity) {
+       this(parserDbData, cacheCapacity);
+       this.inMemoryEnabled = true;
     }
 
     @Override
     public void close() throws IOException {
         try {
-            for (PreparedStatement preparedStmt: preparedStmtMap.values()) {
+            for (PreparedStatement preparedStmt : preparedStmtMap.values()) {
                 preparedStmt.close();
             }
             preparedStmtMap.clear();
@@ -125,8 +157,27 @@ public class UdgerParser implements Closeable {
                 connection.close();
                 connection = null;
             }
+            if (cache != null) {
+                cache.clear();
+            }
+            regexCache.clear();
         } catch (SQLException e) {
             throw new IOException(e.getMessage());
+        }
+    }
+
+    /**
+     * Returns true if the sqlite DB connection has not been closed and is still valid.
+     *
+     * @param timeoutMillis the timeout millis
+     * @return true, if is valid
+     * @throws IOException Signals that an I/O exception has occurred.
+     */
+    public boolean isValid(int timeoutMillis) throws IOException {
+        try {
+            return connection == null || connection.isValid(timeoutMillis);
+        } catch (SQLException e) {
+            throw new IOException("Failed to validate connection within " + timeoutMillis + " millis.", e);
         }
     }
 
@@ -168,9 +219,9 @@ public class UdgerParser implements Closeable {
         }
 
         if (deviceBrandParserEnabled) {
-//            if (ret.getOsFamilyCode() != null && !ret.getOsFamilyCode().isEmpty()) {
-//                fetchDeviceBrand(uaString, ret);
-//            }
+            if (ret.getOsFamilyCode() != null && !ret.getOsFamilyCode().isEmpty()) {
+                fetchDeviceBrand(uaString, ret);
+            }
         }
 
         if (cache != null) {
@@ -185,7 +236,7 @@ public class UdgerParser implements Closeable {
      *
      * @param ipString the IP string
      * @return the instance of UdgerIpResult storing results of parsing
-     * @throws SQLException the SQL exception
+     * @throws SQLException         the SQL exception
      * @throws UnknownHostException the unknown host exception
      */
     public UdgerIpResult parseIp(String ipString) throws SQLException, UnknownHostException {
@@ -198,7 +249,7 @@ public class UdgerParser implements Closeable {
 
         if (addr instanceof Inet4Address) {
             ipv4int = 0L;
-            for (byte b: addr.getAddress()) {
+            for (byte b : addr.getAddress()) {
                 ipv4int = ipv4int << 8 | (b & 0xFF);
             }
             normalizedIp = addr.getHostAddress();
@@ -213,38 +264,23 @@ public class UdgerParser implements Closeable {
 
             prepare();
 
-            ResultSet ipRs = getFirstRow("sqlIp", UdgerSqlQuery.SQL_IP, normalizedIp);
-
-            if (ipRs != null) {
-                try {
-                    if (ipRs.next()) {
-                        fetchUdgerIp(ipRs, ret);
-                        if (!ID_CRAWLER.equals(ret.getIpClassificationCode())) {
-                            ret.setCrawlerFamilyInfoUrl("");
-                        }
+            try (ResultSet ipRs = getFirstRow("sqlIp", UdgerSqlQuery.SQL_IP, normalizedIp)) {
+                if (ipRs != null && ipRs.next()) {
+                    fetchUdgerIp(ipRs, ret);
+                    if (!ID_CRAWLER.equals(ret.getIpClassificationCode())) {
+                        ret.setCrawlerFamilyInfoUrl("");
                     }
-                } finally {
-                    ipRs.close();
                 }
             }
-
 
             if (ipv4int != null) {
                 ret.setIpVer(4);
                 ResultSet dataCenterRs = getFirstRow("sqlDataCenter", UdgerSqlQuery.SQL_DATACENTER, ipv4int, ipv4int);
-                if (dataCenterRs != null) {
-                    try {
-                        if (dataCenterRs.next()) {
-                            fetchDataCenter(dataCenterRs, ret);
-                        }
-                    } finally {
-                        dataCenterRs.close();
-                    }
-                }
+                fetchDataCenterAndCloseRs(dataCenterRs, ret);
             } else {
                 ret.setIpVer(6);
                 int[] ipArray = ip6ToArray((Inet6Address) addr);
-                ResultSet dataCenterRs = getFirstRow("SqlDataCenterRange6", UdgerSqlQuery.SQL_DATACENTER_RANGE6,
+                ResultSet dataCenterRs = getFirstRow("sqlDataCenterRange6", UdgerSqlQuery.SQL_DATACENTER_RANGE6,
                         ipArray[0], ipArray[0],
                         ipArray[1], ipArray[1],
                         ipArray[2], ipArray[2],
@@ -253,20 +289,24 @@ public class UdgerParser implements Closeable {
                         ipArray[5], ipArray[5],
                         ipArray[6], ipArray[6],
                         ipArray[7], ipArray[7]
-                        );
-                if (dataCenterRs != null) {
-                    try {
-                        if (dataCenterRs.next()) {
-                            fetchDataCenter(dataCenterRs, ret);
-                        }
-                    } finally {
-                        dataCenterRs.close();
-                    }
-                }
+                );
+                fetchDataCenterAndCloseRs(dataCenterRs, ret);
             }
         }
 
         return ret;
+    }
+
+    private void fetchDataCenterAndCloseRs(ResultSet dataCenterRs, UdgerIpResult ret) throws SQLException {
+        if (dataCenterRs != null) {
+            try {
+                if (dataCenterRs.next()) {
+                    fetchDataCenter(dataCenterRs, ret);
+                }
+            } finally {
+                dataCenterRs.close();
+            }
+        }
     }
 
     /**
@@ -281,13 +321,13 @@ public class UdgerParser implements Closeable {
     /**
      * Enable/disable the OS parser. OS parser is enabled by default. If enabled following fields
      * of UdgerUaResult are processed by the OS parser:
-     *    <ul>
-     * 	    <li>osFamily, osFamilyCode, OS, osCode, osHomePage, osIcon, osIconBig</li>
-     * 	    <li>osFamilyVendor, osFamilyVendorCode, osFamilyVedorHomepage, osInfoUrl</li>
-     *    </ul>
-     *
-     *  If the OSs fields are not necessary then disabling this feature can increase
-     *  the parser's performance.
+     * <ul>
+     * <li>osFamily, osFamilyCode, OS, osCode, osHomePage, osIcon, osIconBig</li>
+     * <li>osFamilyVendor, osFamilyVendorCode, osFamilyVedorHomepage, osInfoUrl</li>
+     * </ul>
+     * <p>
+     * If the OSs fields are not necessary then disabling this feature can increase
+     * the parser's performance.
      *
      * @param osParserEnabled the true if os parser is to be enabled
      */
@@ -306,14 +346,14 @@ public class UdgerParser implements Closeable {
 
     /**
      * Enable/disable the device parser. Device parser is enabled by default. If enabled following fields
-     *  of UdgerUaResult are filled by the device parser:
-     *    <ul>
-     * 	    <li>deviceClass, deviceClassCode, deviceClassIcon</li>
-     * 	    <li>deviceClassIconBig, deviceClassInfoUrl</li>
-     *    </ul>
-     *
-     *  If the DEVICEs fields are not necessary then disabling this feature can increase
-     *  the parser's performance.
+     * of UdgerUaResult are filled by the device parser:
+     * <ul>
+     * <li>deviceClass, deviceClassCode, deviceClassIcon</li>
+     * <li>deviceClassIconBig, deviceClassInfoUrl</li>
+     * </ul>
+     * <p>
+     * If the DEVICEs fields are not necessary then disabling this feature can increase
+     * the parser's performance.
      *
      * @param deviceParserEnabled the true if device parser is to be enabled
      */
@@ -332,32 +372,19 @@ public class UdgerParser implements Closeable {
 
     /**
      * Enable/disable the device brand parser. Device brand parser is enabled by default. If enabled following fields
-     *  of UdgerUaResult are filled by the device brand parser:
-     *    <ul>
-     * 	    <li>deviceMarketname, deviceBrand, deviceBrandCode, deviceBrandHomepage</li>
-     * 	    <li>deviceBrandIcon, deviceBrandIconBig, deviceBrandInfoUrl</li>
-     *    </ul>
-     *
-     *  If the BRANDs fields are not necessary then disabling this feature can increase
-     *  the parser's performance.
+     * of UdgerUaResult are filled by the device brand parser:
+     * <ul>
+     * <li>deviceMarketname, deviceBrand, deviceBrandCode, deviceBrandHomepage</li>
+     * <li>deviceBrandIcon, deviceBrandIconBig, deviceBrandInfoUrl</li>
+     * </ul>
+     * <p>
+     * If the BRANDs fields are not necessary then disabling this feature can increase
+     * the parser's performance.
      *
      * @param deviceBrandParserEnabled the true if device brand parser is to be enabled
      */
     public void setDeviceBrandParserEnabled(boolean deviceBrandParserEnabled) {
         this.deviceBrandParserEnabled = deviceBrandParserEnabled;
-    }
-
-    private static synchronized void initStaticStructures(Connection connection) throws SQLException {
-        if (clientRegstringList == null) {
-
-            clientRegstringList = prepareRegexpStruct(connection, "udger_client_regex");
-            osRegstringList = prepareRegexpStruct(connection, "udger_os_regex");
-            deviceRegstringList = prepareRegexpStruct(connection, "udger_deviceclass_regex");
-
-            clientWordDetector = createWordDetector(connection, "udger_client_regex", "udger_client_regex_words");
-            deviceWordDetector = createWordDetector(connection, "udger_deviceclass_regex", "udger_deviceclass_regex_words");
-            osWordDetector = createWordDetector(connection, "udger_os_regex", "udger_os_regex_words");
-        }
     }
 
     private static WordDetector createWordDetector(Connection connection, String regexTableName, String wordTableName) throws SQLException {
@@ -369,9 +396,9 @@ public class UdgerParser implements Closeable {
 
         WordDetector result = new WordDetector();
 
-        ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM " + wordTableName);
-        if (rs != null) {
-            try {
+        try (final Statement statement = connection.createStatement();
+             final ResultSet rs = statement.executeQuery("SELECT * FROM " + wordTableName)) {
+            if (rs != null) {
                 while (rs.next()) {
                     int id = rs.getInt("id");
                     if (usedWords.contains(id)) {
@@ -379,34 +406,29 @@ public class UdgerParser implements Closeable {
                         result.addWord(id, word);
                     }
                 }
-            } finally {
-                rs.close();
             }
         }
-        result.printMap();
         return result;
     }
 
     private static void addUsedWords(Set<Integer> usedWords, Connection connection, String regexTableName, String wordIdColumn) throws SQLException {
-        ResultSet rs = connection.createStatement().executeQuery("SELECT " + wordIdColumn + " FROM " + regexTableName);
-        if (rs != null) {
-            try {
+        try (Statement statement = connection.createStatement();
+             ResultSet rs = statement.executeQuery("SELECT " + wordIdColumn + " FROM " + regexTableName)) {
+            if (rs != null) {
                 while (rs.next()) {
                     usedWords.add(rs.getInt(wordIdColumn));
                 }
-            } finally {
-                rs.close();
             }
         }
     }
 
     private int findIdFromList(String uaString, Set<Integer> foundClientWords, List<IdRegString> list) {
         lastPatternMatcher = null;
-        for (IdRegString irs: list) {
+        for (IdRegString irs : list) {
             if ((irs.wordId1 == 0 || foundClientWords.contains(irs.wordId1)) &&
-                (irs.wordId2 == 0 || foundClientWords.contains(irs.wordId2))) {
+                    (irs.wordId2 == 0 || foundClientWords.contains(irs.wordId2))) {
                 Matcher matcher = irs.pattern.matcher(uaString);
-                regexCount ++;
+                perfData.incRegexCount();
                 if (matcher.find()) {
                     lastPatternMatcher = matcher;
                     return irs.id;
@@ -418,7 +440,7 @@ public class UdgerParser implements Closeable {
 
     private int findIdFromListFullScan(String uaString, List<IdRegString> list) {
         lastPatternMatcher = null;
-        for (IdRegString irs: list) {
+        for (IdRegString irs : list) {
             Matcher matcher = irs.pattern.matcher(uaString);
             if (matcher.find()) {
                 lastPatternMatcher = matcher;
@@ -427,11 +449,12 @@ public class UdgerParser implements Closeable {
         }
         return -1;
     }
+
     private static List<IdRegString> prepareRegexpStruct(Connection connection, String regexpTableName) throws SQLException {
         List<IdRegString> ret = new ArrayList<>();
-        ResultSet rs = connection.createStatement().executeQuery("SELECT rowid, regstring, word_id, word2_id FROM " + regexpTableName + " ORDER BY sequence");
-        if (rs != null) {
-            try {
+        try (Statement statement = connection.createStatement();
+             ResultSet rs = statement.executeQuery("SELECT rowid, regstring, word_id, word2_id FROM " + regexpTableName + " ORDER BY sequence")) {
+            if (rs != null) {
                 while (rs.next()) {
                     IdRegString irs = new IdRegString();
                     irs.id = rs.getInt("rowid");
@@ -442,76 +465,55 @@ public class UdgerParser implements Closeable {
                     if (m.matches()) {
                         regex = m.group(1);
                     }
+                    regex = regex.replaceAll("\\.\\*([^?])", ".*?$1");
                     irs.pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
                     ret.add(irs);
                 }
-            } finally {
-                rs.close();
             }
         }
         return ret;
     }
 
-
     private ClientInfo clientDetector(String uaString, UdgerUaResult ret) throws SQLException {
         ClientInfo clientInfo = new ClientInfo();
-
-        ResultSet userAgentRs1 = getFirstRow("sqlCrawler", UdgerSqlQuery.SQL_CRAWLER, uaString);
-        ResultSet userAgentRs2 = null;
-        try {
+        try (ResultSet userAgentRs1 = getFirstRow("sqlCrawler", UdgerSqlQuery.SQL_CRAWLER, uaString)) {
             if (userAgentRs1 != null && userAgentRs1.next()) {
                 fetchUserAgent(userAgentRs1, ret);
                 clientInfo.classId = 99;
                 clientInfo.clientId = -1;
             } else {
-                int rowid = findIdFromList(uaString, clientWordDetector.findWords(perfData, uaString), clientRegstringList);
+                int rowid = findIdFromList(uaString, parserDbData.clientWordDetector.findWords(perfData, uaString), parserDbData.clientRegstringList);
                 if (rowid != -1) {
-                    userAgentRs2 = getFirstRow("sqlCrawler", UdgerSqlQuery.SQL_CLIENT, rowid);
-                    if (userAgentRs2 != null) {
-                        userAgentRs2.next();
-                        fetchUserAgent(userAgentRs2, ret);
-                        clientInfo.classId = ret.getClassId();
-                        clientInfo.clientId = ret.getClientId();
-                        patchVersions(ret);
+                    try (ResultSet userAgentRs2 = getFirstRow("sqlClient", UdgerSqlQuery.SQL_CLIENT, rowid)) {
+                        if (userAgentRs2 != null && userAgentRs2.next()) {
+                            fetchUserAgent(userAgentRs2, ret);
+                            clientInfo.classId = ret.getClassId();
+                            clientInfo.clientId = ret.getClientId();
+                            patchVersions(ret);
+                        }
                     }
                 } else {
                     ret.setUaClass("Unrecognized");
                     ret.setUaClassCode("unrecognized");
                 }
             }
-        } finally {
-            if (userAgentRs1 != null) {
-                userAgentRs1.close();
-            }
-            if (userAgentRs2 != null) {
-                userAgentRs2.close();
-            }
         }
         return clientInfo;
     }
 
     private void osDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo) throws SQLException {
-        int rowid = findIdFromList(uaString, osWordDetector.findWords(perfData, uaString), osRegstringList);
+        int rowid = findIdFromList(uaString, parserDbData.osWordDetector.findWords(perfData, uaString), parserDbData.osRegstringList);
         if (rowid != -1) {
-            ResultSet opSysRs = getFirstRow("sqlOs", UdgerSqlQuery.SQL_OS, rowid);
-            if (opSysRs != null) {
-                try {
-                    opSysRs.next();
+            try (ResultSet opSysRs = getFirstRow("sqlOs", UdgerSqlQuery.SQL_OS, rowid)) {
+                if (opSysRs != null && opSysRs.next()) {
                     fetchOperatingSystem(opSysRs, ret);
-                } finally {
-                    opSysRs.close();
                 }
             }
         } else {
             if (clientInfo.clientId != null && clientInfo.clientId != 0) {
-                ResultSet opSysRs = getFirstRow("sqlClientOs", UdgerSqlQuery.SQL_CLIENT_OS, clientInfo.clientId.toString());
-                if (opSysRs != null) {
-                    try {
-                        if (opSysRs.next()) {
-                            fetchOperatingSystem(opSysRs, ret);
-                        }
-                    } finally {
-                        opSysRs.close();
+                try (ResultSet opSysRs = getFirstRow("sqlClientOs", UdgerSqlQuery.SQL_CLIENT_OS, clientInfo.clientId.toString())) {
+                    if (opSysRs != null && opSysRs.next()) {
+                        fetchOperatingSystem(opSysRs, ret);
                     }
                 }
             }
@@ -519,27 +521,19 @@ public class UdgerParser implements Closeable {
     }
 
     private void deviceDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo) throws SQLException {
-        int rowid = findIdFromList(uaString, deviceWordDetector.findWords(perfData, uaString), deviceRegstringList);
+        // int rowid = findIdFromList(uaString, parserDbData.osWordDetector.findWords(perfData, uaString), parserDbData.deviceRegstringList);
+        int rowid = findIdFromListFullScan(uaString, parserDbData.deviceRegstringList);
         if (rowid != -1) {
-            ResultSet devRs = getFirstRow("sqlDevice", UdgerSqlQuery.SQL_DEVICE, rowid);
-            if (devRs != null) {
-                try {
-                    devRs.next();
+            try (ResultSet devRs = getFirstRow("sqlDevice", UdgerSqlQuery.SQL_DEVICE, rowid)) {
+                if (devRs != null && devRs.next()) {
                     fetchDevice(devRs, ret);
-                } finally {
-                    devRs.close();
                 }
             }
         } else {
             if (clientInfo.classId != null && clientInfo.classId != -1) {
-                ResultSet devRs = getFirstRow("sqlClientClass", UdgerSqlQuery.SQL_CLIENT_CLASS, clientInfo.classId.toString());
-                if (devRs != null) {
-                    try {
-                        if (devRs.next()) {
-                            fetchDevice(devRs, ret);
-                        }
-                    } finally {
-                        devRs.close();
+                try (ResultSet devRs = getFirstRow("sqlClientClass", UdgerSqlQuery.SQL_CLIENT_CLASS, clientInfo.classId.toString())) {
+                    if (devRs != null && devRs.next()) {
+                        fetchDevice(devRs, ret);
                     }
                 }
             }
@@ -554,9 +548,8 @@ public class UdgerParser implements Closeable {
         }
         preparedStatement.setObject(1, ret.getOsFamilyCode());
         preparedStatement.setObject(2, ret.getOsCode());
-        ResultSet devRegexRs  = preparedStatement.executeQuery();
-        if (devRegexRs != null) {
-            try {
+        try (ResultSet devRegexRs = preparedStatement.executeQuery()) {
+            if (devRegexRs != null) {
                 while (devRegexRs.next()) {
                     String devId = devRegexRs.getString("id");
                     String regex = devRegexRs.getString("regstring");
@@ -564,28 +557,21 @@ public class UdgerParser implements Closeable {
                         Pattern patRegex = getRegexFromCache(regex);
                         Matcher matcher = patRegex.matcher(uaString);
                         if (matcher.find()) {
-                            ResultSet devNameListRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE_NAME_LIST, devId, matcher.group(1));
-                            if (devNameListRs != null) {
-                                try {
-                                    if (devNameListRs.next()) {
-                                        ret.setDeviceMarketname(devNameListRs.getString("marketname"));
-                                        ret.setDeviceBrand(devNameListRs.getString("brand"));
-                                        ret.setDeviceBrandCode(devNameListRs.getString("brand_code"));
-                                        ret.setDeviceBrandHomepage(devNameListRs.getString("brand_url"));
-                                        ret.setDeviceBrandIcon(devNameListRs.getString("icon"));
-                                        ret.setDeviceBrandIconBig(devNameListRs.getString("icon_big"));
-                                        ret.setDeviceBrandInfoUrl(UDGER_UA_DEV_BRAND_LIST_URL + devNameListRs.getString("brand_code"));
-                                        break;
-                                    }
-                                } finally {
-                                    devNameListRs.close();
+                            try (ResultSet devNameListRs = getFirstRow("sqlDeviceName", UdgerSqlQuery.SQL_DEVICE_NAME_LIST, devId, matcher.group(1))) {
+                                if (devNameListRs != null && devNameListRs.next()) {
+                                    ret.setDeviceMarketname(devNameListRs.getString("marketname"));
+                                    ret.setDeviceBrand(devNameListRs.getString("brand"));
+                                    ret.setDeviceBrandCode(devNameListRs.getString("brand_code"));
+                                    ret.setDeviceBrandHomepage(devNameListRs.getString("brand_url"));
+                                    ret.setDeviceBrandIcon(devNameListRs.getString("icon"));
+                                    ret.setDeviceBrandIconBig(devNameListRs.getString("icon_big"));
+                                    ret.setDeviceBrandInfoUrl(UDGER_UA_DEV_BRAND_LIST_URL + devNameListRs.getString("brand_code"));
+                                    break;
                                 }
                             }
                         }
                     }
                 }
-            } finally {
-                devRegexRs.close();
             }
         }
     }
@@ -594,17 +580,15 @@ public class UdgerParser implements Closeable {
     private int[] ip6ToArray(Inet6Address addr) {
         int ret[] = new int[8];
         byte[] bytes = addr.getAddress();
-        for (int i=0; i < 8; i++) {
-            ret[i] = ((bytes [i*2] << 8 ) & 0xff00 )| (bytes[i*2+1] & 0xff);
+        for (int i = 0; i < 8; i++) {
+            ret[i] = ((bytes[i * 2] << 8) & 0xff00) | (bytes[i * 2 + 1] & 0xff);
         }
         return ret;
     }
 
     private void prepare() throws SQLException {
         connect();
-        if (clientRegstringList == null) {
-            initStaticStructures(connection);
-        }
+        parserDbData.prepare(connection);
     }
 
     private void connect() throws SQLException {
@@ -614,15 +598,14 @@ public class UdgerParser implements Closeable {
             if (inMemoryEnabled) {
                 // we cannot use read only for in memory DB since we need to populate this DB from the file.
                 connection = DriverManager.getConnection("jdbc:sqlite::memory:");
-                File dbfile = new File(dbFileName);
-                Statement statement = connection.createStatement();
-                try {
+                File dbfile = new File(parserDbData.dbFileName);
+                try (Statement statement = connection.createStatement()) {
                     statement.executeUpdate("restore from " + dbfile.getPath());
                 } catch (Exception e) {
-                    System.out.println("Error re-constructing in memory data base from Db file.");
+                    LOG.warning("Error re-constructing in memory data base from Db file " + dbfile);
                 }
             } else {
-                connection = DriverManager.getConnection("jdbc:sqlite:" + dbFileName, config.toProperties());
+                connection = DriverManager.getConnection("jdbc:sqlite:" + parserDbData.dbFileName, config.toProperties());
             }
         }
     }
@@ -634,20 +617,21 @@ public class UdgerParser implements Closeable {
             if (m.matches()) {
                 regex = m.group(1);
             }
+            regex = regex.replaceAll("\\.\\*([^?])", ".*?$1");
             patRegex = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
             regexCache.put(regex, patRegex);
         }
         return patRegex;
     }
 
-    private ResultSet getFirstRow(String sqlId, String query, Object ... params) throws SQLException {
+    private ResultSet getFirstRow(String sqlId, String query, Object... params) throws SQLException {
         long tm1 = System.nanoTime();
         PreparedStatement preparedStatement = preparedStmtMap.get(query);
         if (preparedStatement == null) {
             preparedStatement = connection.prepareStatement(query);
             preparedStmtMap.put(query, preparedStatement);
         }
-        for (int i=0; i < params.length; i++) {
+        for (int i = 0; i < params.length; i++) {
             preparedStatement.setObject(i + 1, params[i]);
         }
         preparedStatement.setMaxRows(1);
@@ -656,7 +640,6 @@ public class UdgerParser implements Closeable {
         perfData.addTime(sqlId, tm2 - tm1);
         perfData.incCount(sqlId);
         return ret;
-
     }
 
 
@@ -690,7 +673,7 @@ public class UdgerParser implements Closeable {
         ret.setOs(nvl(rs.getString("os")));
         ret.setOsCode(nvl(rs.getString("os_code")));
         ret.setOsFamilyCode(nvl(rs.getString("os_family_code")));
-        ret.setOsFamilyVedorHomepage(nvl(rs.getString("os_family_vedor_homepage")));
+        ret.setOsFamilyVendorHomepage(nvl(rs.getString("os_family_vendor_homepage")));
         ret.setOsFamilyVendor(nvl(rs.getString("os_family_vendor")));
         ret.setOsFamilyVendorCode(nvl(rs.getString("os_family_vendor_code")));
         ret.setOsHomePage(nvl(rs.getString("os_home_page")));
@@ -710,8 +693,11 @@ public class UdgerParser implements Closeable {
     private void patchVersions(UdgerUaResult ret) {
         if (lastPatternMatcher != null) {
             String version = "";
-            if (lastPatternMatcher.groupCount()>=1) {
-               version = lastPatternMatcher.group(1);
+            if (lastPatternMatcher.groupCount() >= 1) {
+                version = lastPatternMatcher.group(1);
+                if (version == null) {
+                    version = "";
+                }
             }
             ret.setUaVersion(version);
             ret.setUaVersionMajor(version.split("\\.")[0]);
@@ -758,6 +744,11 @@ public class UdgerParser implements Closeable {
     }
 
     public void printPerformanceData() {
-        perfData.print(regexCount, regexCache.size());
+        perfData.print(regexCache.size());
     }
+
+    public void clearPerformanceData() {
+       perfData.clear();
+    }
+
 }
