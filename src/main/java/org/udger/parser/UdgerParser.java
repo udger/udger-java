@@ -557,7 +557,7 @@ public class UdgerParser implements Closeable {
                         Pattern patRegex = getRegexFromCache(regex);
                         Matcher matcher = patRegex.matcher(uaString);
                         if (matcher.find()) {
-                            try (ResultSet devNameListRs = getFirstRow("sqlDeviceName", UdgerSqlQuery.SQL_DEVICE_NAME_LIST, devId, matcher.group(1))) {
+                            try (ResultSet devNameListRs = getFirstRow("sqlDeviceName", UdgerSqlQuery.SQL_DEVICE_NAME_LIST, matcher.group(1), devId)) {
                                 if (devNameListRs != null && devNameListRs.next()) {
                                     ret.setDeviceMarketname(devNameListRs.getString("marketname"));
                                     ret.setDeviceBrand(devNameListRs.getString("brand"));
