@@ -438,17 +438,17 @@ public class UdgerParser implements Closeable {
         return -1;
     }
 
-    private int findIdFromListFullScan(String uaString, List<IdRegString> list) {
-        lastPatternMatcher = null;
-        for (IdRegString irs : list) {
-            Matcher matcher = irs.pattern.matcher(uaString);
-            if (matcher.find()) {
-                lastPatternMatcher = matcher;
-                return irs.id;
-            }
-        }
-        return -1;
-    }
+//    private int findIdFromListFullScan(String uaString, List<IdRegString> list) {
+//        lastPatternMatcher = null;
+//        for (IdRegString irs : list) {
+//            Matcher matcher = irs.pattern.matcher(uaString);
+//            if (matcher.find()) {
+//                lastPatternMatcher = matcher;
+//                return irs.id;
+//            }
+//        }
+//        return -1;
+//    }
 
     private static List<IdRegString> prepareRegexpStruct(Connection connection, String regexpTableName) throws SQLException {
         List<IdRegString> ret = new ArrayList<>();
@@ -521,8 +521,8 @@ public class UdgerParser implements Closeable {
     }
 
     private void deviceDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo) throws SQLException {
-        // int rowid = findIdFromList(uaString, parserDbData.osWordDetector.findWords(perfData, uaString), parserDbData.deviceRegstringList);
-        int rowid = findIdFromListFullScan(uaString, parserDbData.deviceRegstringList);
+        int rowid = findIdFromList(uaString, parserDbData.deviceWordDetector.findWords(perfData, uaString), parserDbData.deviceRegstringList);
+        // int rowid = findIdFromListFullScan(uaString, parserDbData.deviceRegstringList);
         if (rowid != -1) {
             try (ResultSet devRs = getFirstRow("sqlDevice", UdgerSqlQuery.SQL_DEVICE, rowid)) {
                 if (devRs != null && devRs.next()) {

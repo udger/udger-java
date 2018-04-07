@@ -77,11 +77,11 @@ public class UdgerPerformanceTest {
                     e.printStackTrace();
                 }
                 x ++;
-                if (x % 10000 == 0) {
+                if (x % 1000 == 0) {
                     up.printPerformanceData();
                     up.clearPerformanceData();
                     long t = tm - tmPrev;
-                    System.out.println("TOTAL Queries: " + 10000 + " time : " + t / 1000000 + "ms AVG : " + 1000000000 * 10000.0 / t + "/s");
+                    System.out.println("TOTAL Queries: " + 1000 + " time : " + t / 1000000 + "ms AVG : " + 1000000000 * 1000.0 / t + "/s");
                     tmPrev = tm;
                 }
             }
