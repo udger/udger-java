@@ -49,16 +49,18 @@ public class UdgerParser implements Closeable {
         private List<IdRegString> osRegstringList;
         private List<IdRegString> deviceRegstringList;
 
-        private String dbFileName;
+        private volatile boolean prepared = false;
+
+        private final String dbFileName;
 
         public ParserDbData(String dbFileName) {
             this.dbFileName = dbFileName;
         }
 
         protected void prepare(Connection connection) throws SQLException {
-            if (clientRegstringList == null) {
+            if (!prepared) {
                 synchronized (this) {
-                    if (clientRegstringList == null) {
+                    if (!prepared) {
                         clientRegstringList = prepareRegexpStruct(connection, "udger_client_regex");
                         osRegstringList = prepareRegexpStruct(connection, "udger_os_regex");
                         deviceRegstringList = prepareRegexpStruct(connection, "udger_deviceclass_regex");
@@ -66,6 +68,7 @@ public class UdgerParser implements Closeable {
                         clientWordDetector = createWordDetector(connection, "udger_client_regex", "udger_client_regex_words");
                         deviceWordDetector = createWordDetector(connection, "udger_deviceclass_regex", "udger_deviceclass_regex_words");
                         osWordDetector = createWordDetector(connection, "udger_os_regex", "udger_os_regex_words");
+                        prepared = true;
                     }
                 }
             }
