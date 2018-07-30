@@ -132,7 +132,7 @@ public class UdgerParser implements Closeable {
      */
     public UdgerParser(ParserDbData parserDbData, boolean inMemoryEnabled, int cacheCapacity) {
        this(parserDbData, cacheCapacity);
-       this.inMemoryEnabled = true;
+       this.inMemoryEnabled = inMemoryEnabled;
     }
 
     @Override
