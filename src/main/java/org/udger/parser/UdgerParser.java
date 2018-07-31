@@ -669,7 +669,12 @@ public class UdgerParser implements Closeable {
                 }
             }
             ret.setUaVersion(version);
-            ret.setUaVersionMajor(version.split("\\.")[0]);
+            String versionSegments[] = version.split("\\.");
+            if (versionSegments.length > 0) {
+                ret.setUaVersionMajor(version.split("\\.")[0]);
+            } else {
+                ret.setUaVersionMajor("");
+            }
             ret.setUa((ret.getUa() != null ? ret.getUa() : "") + " " + version);
         } else {
             ret.setUaVersion("");
