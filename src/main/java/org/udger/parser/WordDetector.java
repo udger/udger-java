@@ -5,10 +5,13 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
 
 public class WordDetector implements Serializable {
 
     private static final long serialVersionUID = -2123898245391386812L;
+
+    private static final Logger LOG = Logger.getLogger(WordDetector.class.getName());
 
     private static class WordInfo {
         int id;
@@ -46,7 +49,7 @@ public class WordDetector implements Serializable {
             }
             wList.add(new WordInfo(id, s));
         } else {
-            System.out.println("Index out of hashmap" + id + " : "+ s);
+            LOG.warning("Index out of hashmap" + id + " : "+ s);
         }
     }
 
