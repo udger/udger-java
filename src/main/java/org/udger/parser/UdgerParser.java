@@ -81,11 +81,21 @@ public class UdgerParser implements Closeable {
         private Integer classId;
     }
 
-    protected static class IdRegString {
+    private static class IdRegString {
         int id;
         int wordId1;
         int wordId2;
         Pattern pattern;
+    }
+
+    private static class MatcherWithIdRegString {
+        private final Matcher matcher;
+        private final IdRegString irs;
+
+        private MatcherWithIdRegString(Matcher matcher, IdRegString irs) {
+            this.matcher = matcher;
+            this.irs = irs;
+        }
     }
 
     private ParserDbData parserDbData;
@@ -411,13 +421,13 @@ public class UdgerParser implements Closeable {
         }
     }
 
-    private IdRegString findIdRegString(String uaString, Set<Integer> foundClientWords, List<IdRegString> list) {
+    private MatcherWithIdRegString findMatcherIdRegString(String uaString, Set<Integer> foundClientWords, List<IdRegString> list) {
         for (IdRegString irs : list) {
             if ((irs.wordId1 == 0 || foundClientWords.contains(irs.wordId1)) &&
                     (irs.wordId2 == 0 || foundClientWords.contains(irs.wordId2))) {
                 Matcher matcher = irs.pattern.matcher(uaString);
                 if (matcher.find())
-                    return irs;
+                    return new MatcherWithIdRegString(matcher, irs);
             }
         }
         return null;
@@ -454,14 +464,14 @@ public class UdgerParser implements Closeable {
                 clientInfo.classId = 99;
                 clientInfo.clientId = -1;
             } else {
-                IdRegString irs = findIdRegString(uaString, parserDbData.clientWordDetector.findWords(uaString), parserDbData.clientRegstringList);
-                if (irs != null) {
-                    try (ResultSet userAgentRs2 = getFirstRow(UdgerSqlQuery.SQL_CLIENT, irs.id)) {
+                MatcherWithIdRegString mwirs = findMatcherIdRegString(uaString, parserDbData.clientWordDetector.findWords(uaString), parserDbData.clientRegstringList);
+                if (mwirs != null) {
+                    try (ResultSet userAgentRs2 = getFirstRow(UdgerSqlQuery.SQL_CLIENT, mwirs.irs.id)) {
                         if (userAgentRs2 != null && userAgentRs2.next()) {
                             fetchUserAgent(userAgentRs2, ret);
                             clientInfo.classId = ret.getClassId();
                             clientInfo.clientId = ret.getClientId();
-                            patchVersions(irs.pattern.matcher(uaString), ret);
+                            patchVersions(mwirs.matcher, ret);
                         }
                     }
                 } else {
@@ -474,9 +484,9 @@ public class UdgerParser implements Closeable {
     }
 
     private void osDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo) throws SQLException {
-        IdRegString irs = findIdRegString(uaString, parserDbData.osWordDetector.findWords(uaString), parserDbData.osRegstringList);
-        if (irs != null) {
-            try (ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_OS, irs.id)) {
+        MatcherWithIdRegString mwirs = findMatcherIdRegString(uaString, parserDbData.osWordDetector.findWords(uaString), parserDbData.osRegstringList);
+        if (mwirs != null) {
+            try (ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_OS, mwirs.irs.id)) {
                 if (opSysRs != null && opSysRs.next()) {
                     fetchOperatingSystem(opSysRs, ret);
                 }
@@ -493,9 +503,9 @@ public class UdgerParser implements Closeable {
     }
 
     private void deviceDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo) throws SQLException {
-        IdRegString irs = findIdRegString(uaString, parserDbData.deviceWordDetector.findWords(uaString), parserDbData.deviceRegstringList);
-        if (irs != null) {
-            try (ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE, irs.id)) {
+        MatcherWithIdRegString mwirs = findMatcherIdRegString(uaString, parserDbData.deviceWordDetector.findWords(uaString), parserDbData.deviceRegstringList);
+        if (mwirs != null) {
+            try (ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE, mwirs.irs.id)) {
                 if (devRs != null && devRs.next()) {
                     fetchDevice(devRs, ret);
                 }
