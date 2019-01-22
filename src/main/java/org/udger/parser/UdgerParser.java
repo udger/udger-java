@@ -8,6 +8,8 @@
 */
 package org.udger.parser;
 
+import org.sqlite.SQLiteConfig;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -21,8 +23,6 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.sqlite.SQLiteConfig;
 
 /**
  * Main parser's class handles parser requests for user agent or IP.
@@ -461,7 +461,7 @@ public class UdgerParser implements Closeable {
                             fetchUserAgent(userAgentRs2, ret);
                             clientInfo.classId = ret.getClassId();
                             clientInfo.clientId = ret.getClientId();
-                            patchVersions(ret);
+                            patchVersions(irs.pattern.matcher(uaString), ret);
                         }
                     }
                 } else {
