@@ -8,6 +8,8 @@
 */
 package org.udger.parser;
 
+import org.sqlite.SQLiteConfig;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -21,8 +23,6 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.sqlite.SQLiteConfig;
 
 /**
  * Main parser's class handles parser requests for user agent or IP.
@@ -81,11 +81,21 @@ public class UdgerParser implements Closeable {
         private Integer classId;
     }
 
-    protected static class IdRegString {
+    private static class IdRegString {
         int id;
         int wordId1;
         int wordId2;
         Pattern pattern;
+    }
+
+    private static class MatcherWithIdRegString {
+        private final Matcher matcher;
+        private final IdRegString irs;
+
+        private MatcherWithIdRegString(Matcher matcher, IdRegString irs) {
+            this.matcher = matcher;
+            this.irs = irs;
+        }
     }
 
     private ParserDbData parserDbData;
@@ -93,7 +103,6 @@ public class UdgerParser implements Closeable {
     private Connection connection;
 
     private final Map<String, SoftReference<Pattern>> regexCache = new HashMap<>();
-    private Matcher lastPatternMatcher;
 
     private Map<String, PreparedStatement> preparedStmtMap = new HashMap<>();
 
@@ -412,19 +421,16 @@ public class UdgerParser implements Closeable {
         }
     }
 
-    private int findIdFromList(String uaString, Set<Integer> foundClientWords, List<IdRegString> list) {
-        lastPatternMatcher = null;
+    private MatcherWithIdRegString findMatcherIdRegString(String uaString, Set<Integer> foundClientWords, List<IdRegString> list) {
         for (IdRegString irs : list) {
             if ((irs.wordId1 == 0 || foundClientWords.contains(irs.wordId1)) &&
                     (irs.wordId2 == 0 || foundClientWords.contains(irs.wordId2))) {
                 Matcher matcher = irs.pattern.matcher(uaString);
-                if (matcher.find()) {
-                    lastPatternMatcher = matcher;
-                    return irs.id;
-                }
+                if (matcher.find())
+                    return new MatcherWithIdRegString(matcher, irs);
             }
         }
-        return -1;
+        return null;
     }
 
     private static List<IdRegString> prepareRegexpStruct(Connection connection, String regexpTableName) throws SQLException {
@@ -458,14 +464,14 @@ public class UdgerParser implements Closeable {
                 clientInfo.classId = 99;
                 clientInfo.clientId = -1;
             } else {
-                int rowid = findIdFromList(uaString, parserDbData.clientWordDetector.findWords(uaString), parserDbData.clientRegstringList);
-                if (rowid != -1) {
-                    try (ResultSet userAgentRs2 = getFirstRow(UdgerSqlQuery.SQL_CLIENT, rowid)) {
+                MatcherWithIdRegString mwirs = findMatcherIdRegString(uaString, parserDbData.clientWordDetector.findWords(uaString), parserDbData.clientRegstringList);
+                if (mwirs != null) {
+                    try (ResultSet userAgentRs2 = getFirstRow(UdgerSqlQuery.SQL_CLIENT, mwirs.irs.id)) {
                         if (userAgentRs2 != null && userAgentRs2.next()) {
                             fetchUserAgent(userAgentRs2, ret);
                             clientInfo.classId = ret.getClassId();
                             clientInfo.clientId = ret.getClientId();
-                            patchVersions(ret);
+                            patchVersions(mwirs.matcher, ret);
                         }
                     }
                 } else {
@@ -478,9 +484,9 @@ public class UdgerParser implements Closeable {
     }
 
     private void osDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo) throws SQLException {
-        int rowid = findIdFromList(uaString, parserDbData.osWordDetector.findWords(uaString), parserDbData.osRegstringList);
-        if (rowid != -1) {
-            try (ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_OS, rowid)) {
+        MatcherWithIdRegString mwirs = findMatcherIdRegString(uaString, parserDbData.osWordDetector.findWords(uaString), parserDbData.osRegstringList);
+        if (mwirs != null) {
+            try (ResultSet opSysRs = getFirstRow(UdgerSqlQuery.SQL_OS, mwirs.irs.id)) {
                 if (opSysRs != null && opSysRs.next()) {
                     fetchOperatingSystem(opSysRs, ret);
                 }
@@ -497,9 +503,9 @@ public class UdgerParser implements Closeable {
     }
 
     private void deviceDetector(String uaString, UdgerUaResult ret, ClientInfo clientInfo) throws SQLException {
-        int rowid = findIdFromList(uaString, parserDbData.deviceWordDetector.findWords(uaString), parserDbData.deviceRegstringList);
-        if (rowid != -1) {
-            try (ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE, rowid)) {
+        MatcherWithIdRegString mwirs = findMatcherIdRegString(uaString, parserDbData.deviceWordDetector.findWords(uaString), parserDbData.deviceRegstringList);
+        if (mwirs != null) {
+            try (ResultSet devRs = getFirstRow(UdgerSqlQuery.SQL_DEVICE, mwirs.irs.id)) {
                 if (devRs != null && devRs.next()) {
                     fetchDevice(devRs, ret);
                 }
@@ -659,7 +665,7 @@ public class UdgerParser implements Closeable {
         ret.setDeviceClassInfoUrl(nvl(rs.getString("device_class_info_url")));
     }
 
-    private void patchVersions(UdgerUaResult ret) {
+    private void patchVersions(Matcher lastPatternMatcher, UdgerUaResult ret) {
         if (lastPatternMatcher != null) {
             String version = "";
             if (lastPatternMatcher.groupCount() >= 1) {
